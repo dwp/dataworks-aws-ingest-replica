@@ -29,17 +29,17 @@ resource "aws_key_pair" "emr-key" {
   )
 }
 
-resource "aws_emr_cluster" "hbase" {
-  name                              = "ingest-hbase"
+resource "aws_emr_cluster" "hbase_read_replica" {
+  name                              = "hbase-read-replica"
   release_label                     = "emr-5.30.1"
   applications                      = local.emr_applications[local.environment]
   termination_protection            = false
   keep_job_flow_alive_when_no_steps = true
   service_role                      = aws_iam_role.emr_service.arn
-  log_uri                = "s3n://${data.terraform_remote_state.security-tools.outputs.logstore_bucket.id}/${aws_s3_bucket_object.emr_logs_folder.id}"
-  security_configuration = aws_emr_security_configuration.hbase_ebs_encryption.name
-  custom_ami_id          = var.emr_al2_ami_id
-  ebs_root_volume_size   = 40
+  log_uri                           = "s3n://${data.terraform_remote_state.security-tools.outputs.logstore_bucket.id}/${aws_s3_bucket_object.emr_logs_folder.id}"
+  security_configuration            = aws_emr_security_configuration.hbase_ebs_encryption.name
+  custom_ami_id                     = var.emr_al2_ami_id
+  ebs_root_volume_size              = 40
 
   master_instance_group {
     instance_type  = var.hbase_master_instance_type[local.environment]
@@ -64,7 +64,7 @@ resource "aws_emr_cluster" "hbase" {
   }
 
   ec2_attributes {
-    subnet_id                         = aws_subnet.emr.id
+    subnet_id                         = data.terraform_remote_state.internal_compute.outputs.hbase_emr_subnet.id
     instance_profile                  = aws_iam_instance_profile.emr_hbase_ingest.id
     emr_managed_master_security_group = aws_security_group.emr_hbase_master.id
     additional_master_security_groups = aws_security_group.emr_hbase_common.id
@@ -271,49 +271,6 @@ EOF
 //  )
 //}
 
-//resource "aws_route_table" "emr" {
-//  vpc_id = module.internal_compute_vpc.vpc.id
-//  tags   = local.common_tags
-//}
-
-//resource "aws_route" "emr_stub_ucfs" {
-//  count                     = local.deploy_stub_broker[local.environment] ? length(data.terraform_remote_state.ingestion.outputs.stub_ucfs_subnets.cidr_block) : 0
-//  route_table_id            = aws_route_table.emr.id
-//  destination_cidr_block    = element(data.terraform_remote_state.ingestion.outputs.stub_ucfs_subnets.cidr_block, count.index)
-//  vpc_peering_connection_id = data.terraform_remote_state.ingestion.outputs.peering_connections.stub_to_internal_compute[0].id
-//}
-
-//resource "aws_route" "emr_business_data_subnets" {
-//  count                     = length(data.terraform_remote_state.ingestion.outputs.ingestion_subnets.cidr_block)
-//  route_table_id            = aws_route_table.emr.id
-//  destination_cidr_block    = element(data.terraform_remote_state.ingestion.outputs.ingestion_subnets.cidr_block, count.index)
-//  vpc_peering_connection_id = aws_vpc_peering_connection.ingestion.id
-//}
-
-//resource "aws_route" "emr_ingest_dks" {
-//  count = length(
-//    data.terraform_remote_state.crypto.outputs.dks_subnet.cidr_blocks,
-//  )
-//  route_table_id = aws_route_table.emr.id
-//  destination_cidr_block = element(
-//    data.terraform_remote_state.crypto.outputs.dks_subnet.cidr_blocks,
-//    count.index,
-//  )
-//  vpc_peering_connection_id = aws_vpc_peering_connection_accepter.crypto.id
-//}
-
-//resource "aws_route" "dks_emr_ingest" {
-//  provider                  = aws.management-crypto
-//  count                     = length(aws_subnet.emr.*.cidr_block)
-//  route_table_id            = data.terraform_remote_state.crypto.outputs.dks_route_table.id
-//  destination_cidr_block    = element(aws_subnet.emr.*.cidr_block, count.index)
-//  vpc_peering_connection_id = aws_vpc_peering_connection_accepter.crypto.id
-//}
-
-//resource "aws_route_table_association" "emr" {
-//  subnet_id      = aws_subnet.emr.id
-//  route_table_id = aws_route_table.emr.id
-//}
 
 #
 ########        IAM
@@ -1148,7 +1105,7 @@ resource "aws_s3_bucket_object" "emr_logs_folder" {
   tags = merge(
     local.common_tags,
     {
-      Name = "emr-logs-folder"
+      Name = "emr-replica-logs-folder"
     },
   )
 }
@@ -1234,3 +1191,4 @@ resource "aws_s3_bucket_object" "emr_logs_folder" {
 //    desired_count = var.hbase_core_instance_count[local.environment]
 //  }
 //}
+
