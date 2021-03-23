@@ -2,7 +2,20 @@ locals {
 
   input_bucket_business_data_root = "business-data"
   hbase_rootdir_prefix            = "${local.input_bucket_business_data_root}/${var.hbase_rootdir[local.environment]}"
-  hbase_rootdir                   = "${data.terraform_remote_state.ingestion.outputs.s3_buckets.input_bucket}/${local.hbase_rootdir_prefix}"
+  hbase_rootdir                   = "${data.terraform_remote_state.ingest.outputs.s3_buckets.input_bucket}/${local.hbase_rootdir_prefix}"
+
+  management_account = {
+    development = "management-dev"
+    qa          = "management-dev"
+    integration = "management-dev"
+    preprod     = "management"
+    production  = "management"
+  }
+
+  crypto_workspace = {
+    management-dev = "management-dev"
+    management     = "management"
+  }
 
   emr_applications = {
     development = ["Spark", "Hive", "HBase", "Ganglia"]
@@ -26,4 +39,11 @@ locals {
     production  = ["ucfs_ca", "ucfs_ca_old", "dataworks_root_ca", "dataworks_mgt_root_ca"]
   }
 
+  s3_manifest_prefix = {
+    development = "business-data/manifest"
+    qa          = "business-data/manifest"
+    integration = "business-data/manifest"
+    preprod     = "business-data/manifest"
+    production  = "business-data/manifest"
+  }
 }

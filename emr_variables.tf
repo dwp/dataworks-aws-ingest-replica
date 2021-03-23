@@ -1,6 +1,149 @@
-# HBASE ROOT DIRECTORY CHANGE LOG:
-# Please see here ./docs/hbase-change-log.md
 
+variable "emr_mapreduce_task_timeout_seconds" {
+  type        = map(number)
+  description = "Task timeout in seconds for mapreduce tasks, zero is off - size of files varies massively so off used generally"
+  default = {
+    development = 0
+    qa          = 0
+    integration = 0
+    preprod     = 0
+    production  = 0
+  }
+}
+
+variable "emr_mapreduce_map_java_opts" {
+  type        = map(string)
+  description = "The java options to pass to the map tasks, usually used to set JVM memory limits"
+  default = {
+    development = "-Xmx1229m"
+    qa          = "-Xmx1229m"
+    integration = "-Xmx1229m"
+    preprod     = "-Xmx1229m"
+    production  = "-Xmx2458m"
+  }
+}
+
+variable "emr_mapreduce_reduce_java_opts" {
+  type        = map(string)
+  description = "The java options to pass to the reduce tasks, usually used to set JVM memory limits"
+  default = {
+    development = "-Xmx2458m"
+    qa          = "-Xmx2458m"
+    integration = "-Xmx2458m"
+    preprod     = "-Xmx2458m"
+    production  = "-Xmx4916m"
+  }
+}
+
+variable "emr_mapreduce_map_memory_mb" {
+  type        = map(number)
+  description = "The total memory possibly available for map tasks"
+  default = {
+    development = 1536
+    qa          = 1536
+    integration = 1536
+    preprod     = 1536
+    production  = 3072
+  }
+}
+
+variable "emr_mapreduce_reduce_memory_mb" {
+  type        = map(number)
+  description = "The total memory possibly available for reduce tasks"
+  default = {
+    development = 3072
+    qa          = 3072
+    integration = 3072
+    preprod     = 3072
+    production  = 6144
+  }
+}
+
+variable "emr_mapreduce_shuffle_memory_limit_percent" {
+  type        = map(string)
+  description = "Amount of reduce memory that can be assigned to a single shuffle, given HBase is mainly a shuffle, set it high"
+  default = {
+    development = "0.50"
+    qa          = "0.50"
+    integration = "0.50"
+    preprod     = "0.50"
+    production  = "0.50"
+  }
+}
+
+variable "emr_yarn_app_mapreduce_am_resource_mb" {
+  type        = map(number)
+  description = "Amount of memory available to the application master to manage all the yarn tasks"
+  default = {
+    development = 3072
+    qa          = 3072
+    integration = 3072
+    preprod     = 3072
+    production  = 6144
+  }
+}
+
+variable "emr_yarn_scheduler_minimum_allocation_mb" {
+  type        = map(number)
+  description = "Min amount of memory available to the application master to manage all the yarn tasks - must be bigger than emr_yarn_app_mapreduce_am_resource_mb"
+  default = {
+    development = 32
+    qa          = 32
+    integration = 32
+    preprod     = 32
+    production  = 32
+  }
+}
+
+variable "emr_yarn_scheduler_maximum_allocation_mb" {
+  type        = map(number)
+  description = "Max amount of memory available to the application master to manage all the yarn tasks - must be bigger than emr_yarn_app_mapreduce_am_resource_mb"
+  default = {
+    development = 6144
+    qa          = 6144
+    integration = 6144
+    preprod     = 6144
+    production  = 10240
+  }
+}
+
+variable "emr_yarn_nodemanager_resource_memory_mb" {
+  type        = map(number)
+  description = "Amount of memory available to the application master to manage all the yarn tasks"
+  default = {
+    development = 6144
+    qa          = 6144
+    integration = 6144
+    preprod     = 6144
+    production  = 10240
+  }
+}
+
+# Source - https://aws.amazon.com/blogs/big-data/best-practices-for-successfully-managing-memory-for-apache-spark-applications-on-amazon-emr/
+variable "emr_yarn_nodemanager_vmem_check_enabled" {
+  type        = map(bool)
+  description = "A boolean indicating where to perform virtual memory checks, recommended by AWS docs to be off"
+  default = {
+    development = false
+    qa          = false
+    integration = false
+    preprod     = false
+    production  = false
+  }
+}
+
+# Source - https://aws.amazon.com/blogs/big-data/best-practices-for-successfully-managing-memory-for-apache-spark-applications-on-amazon-emr/
+variable "emr_yarn_nodemanager_pmem_check_enabled" {
+  type        = map(bool)
+  description = "A boolean indicating where to perform permanent memory checks, recommended by AWS docs to be off"
+  default = {
+    development = false
+    qa          = false
+    integration = false
+    preprod     = false
+    production  = false
+  }
+}
 
 # Must start with "hbase-" to honour the input bucket lifecycle_rule 'hbase-root-dir in business-data'"
 variable "hbase_rootdir" {
@@ -15,7 +158,20 @@ variable "hbase_rootdir" {
   }
 }
 
-###--- Start stuff changed during bulk loads ---###
+
+variable "hbase_ssmenabled" {
+  type        = map(string)
+  description = "Determines whether SSM is enabedl"
+  default = {
+    development = "True"
+    qa          = "True"
+    integration = "True"
+    preprod     = "False"
+    // OFF by IAM Policy
+    production = "False"
+    // OFF by IAM Policy
+  }
+}
 
 variable "hbase_ipc_server_callqueue_read_ratio" {
   type        = map(string)
@@ -332,6 +488,7 @@ variable "hbase_balancer_max_rit_percent" {
     production  = "0.5"
   }
 }
+
 
 variable "hbase_regionserver_thread_compaction_small" {
   type        = map(number)
@@ -806,13 +963,13 @@ variable "hbase_assignment_usezk" {
   }
 }
 
-output "hbase_cluster" {
-  value = aws_emr_cluster.hbase
-}
-
-output "hbase_cluster_counts" {
-  value = {
-    core_instance_count   = var.hbase_core_instance_count[local.environment]
-    master_instance_count = var.hbase_master_instance_count[local.environment]
-  }
-}
+//output "hbase_replica" {
+//  value = aws_emr_cluster.hbase_read_replica
+//}
+//
+//output "hbase_replica_cluster_counts" {
+//  value = {
+//    core_instance_count   = var.hbase_core_instance_count[local.environment]
+//    master_instance_count = var.hbase_master_instance_count[local.environment]
+//  }
+//}

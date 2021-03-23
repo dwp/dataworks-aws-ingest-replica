@@ -1,33 +1,21 @@
-data "local_file" "amazon_root_ca1_pem" {
-  filename = ""
-}
+//data "local_file" "amazon_root_ca1_pem" {
+//  filename = ""
+//}
 
-resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
-  bucket     = data.terraform_remote_state.common.outputs.config_bucket.id
-  key        = "component/ingest_emr/AmazonRootCA1.pem"
-  content    = data.local_file.amazon_root_ca1_pem.content
-  kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk.arn
+//todo:fix aws_key_pair
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "amazon-root-ca1-pem"
-    },
-  )
-}
-
-resource "aws_key_pair" "emr-key" {
-  key_name   = "emr-key"
-  public_key = local.emr_key[local.environment]
-
-
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "emr-key"
-    },
-  )
-}
+//resource "aws_key_pair" "emr-key" {
+//  key_name   = "emr-key"
+//  public_key = local.emr_key[local.environment]
+//
+//
+//  tags = merge(
+//    local.common_tags,
+//    {
+//      Name = "emr-key"
+//    },
+//  )
+//}
 
 resource "aws_emr_cluster" "hbase_read_replica" {
   name                              = "hbase-read-replica"
@@ -64,14 +52,15 @@ resource "aws_emr_cluster" "hbase_read_replica" {
   }
 
   ec2_attributes {
-    subnet_id                         = data.terraform_remote_state.internal_compute.outputs.hbase_emr_subnet.id
-    instance_profile                  = aws_iam_instance_profile.emr_hbase_ingest.id
+    // todo: create new subnets for hosting replica
+    subnet_id                         = data.terraform_remote_state.internal_compute.outputs.hbase_emr_subnet.id[0]
+    instance_profile                  = aws_iam_instance_profile.emr_hbase_replica.id
     emr_managed_master_security_group = aws_security_group.emr_hbase_master.id
     additional_master_security_groups = aws_security_group.emr_hbase_common.id
     emr_managed_slave_security_group  = aws_security_group.emr_hbase_slave.id
     additional_slave_security_groups  = aws_security_group.emr_hbase_common.id
     service_access_security_group     = aws_security_group.emr_hbase_service.id
-    key_name                          = aws_key_pair.emr-key.key_name
+    //    key_name                          = aws_key_pair.emr-key.key_name
   }
 
   # Optional: ignore outside changes to running cluster steps
@@ -79,32 +68,33 @@ resource "aws_emr_cluster" "hbase_read_replica" {
     ignore_changes = [step]
   }
 
-  bootstrap_action {
-    name = "Certificate Setup"
-    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.certificate_setup.key)
-  }
-
-  bootstrap_action {
-    name = "Unique Hostname"
-    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.unique_hostname.key)
-  }
-
-  bootstrap_action {
-    name = "Start SSM Agent"
-    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.start_ssm_script.key)
-  }
-
-  bootstrap_action {
-    name = "Generate Download Scripts Script"
-    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.generate_download_scripts_script.key)
-  }
-
-  bootstrap_action {
-    name = "CloudWatch Setup"
-    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.cloudwatch_sh.key)
-  }
+  //  bootstrap_action {
+  //    name = "Certificate Setup"
+  //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.certificate_setup.key)
+  //  }
+  //
+  //  bootstrap_action {
+  //    name = "Unique Hostname"
+  //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.unique_hostname.key)
+  //  }
+  //
+  //  bootstrap_action {
+  //    name = "Start SSM Agent"
+  //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.start_ssm_script.key)
+  //  }
+  //
+  //  bootstrap_action {
+  //    name = "Generate Download Scripts Script"
+  //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.generate_download_scripts_script.key)
+  //  }
+  //
+  //  bootstrap_action {
+  //    name = "CloudWatch Setup"
+  //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.cloudwatch_sh.key)
+  //  }
 
   # For HBase tunables see https://docs.aws.amazon.com/emr/latest/ReleaseGuide/emr-hbase-configure.html
+  //todo: rationalise and add replica config
   configurations_json = <<EOF
   [
     {
@@ -248,42 +238,17 @@ EOF
 }
 
 #
-########        VPC
-
-# Note that EMR can sit in one and only one subnet, and there isn't room to create 3 subnets in the VPC so
-# we only create one so that in the event of an AZ failure it's quicker for us to move the cluster
-# somewhere else
-
-//resource "aws_subnet" "emr" {
-//  cidr_block = cidrsubnet(
-//    module.internal_compute_vpc.vpc.cidr_block,
-//    4,
-//    12,
-//  )
-//  availability_zone = local.hbase_az[local.environment]
-//  vpc_id            = module.internal_compute_vpc.vpc.id
-//
-//  tags = merge(
-//    local.common_tags,
-//    {
-//      Name = "emr"
-//    },
-//  )
-//}
-
-
-#
 ########        IAM
 ########        Instance role & profile
-resource "aws_iam_role" "emr_hbase_ingest" {
-  name               = "emr_hbase_ingest"
+resource "aws_iam_role" "emr_hbase_replica" {
+  name               = "emr_hbase_replica"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
   tags               = local.common_tags
 }
 
-resource "aws_iam_instance_profile" "emr_hbase_ingest" {
-  name = "emr_hbase_ingest"
-  role = aws_iam_role.emr_hbase_ingest.id
+resource "aws_iam_instance_profile" "emr_hbase_replica" {
+  name = "emr_hbase_replica"
+  role = aws_iam_role.emr_hbase_replica.id
 }
 
 data "aws_iam_policy_document" "ec2_assume_role" {
@@ -301,17 +266,17 @@ data "aws_iam_policy_document" "ec2_assume_role" {
 
 #        Attach AWS policies
 resource "aws_iam_role_policy_attachment" "emr_for_ec2_attachment" {
-  role       = aws_iam_role.emr_hbase_ingest.name
+  role       = aws_iam_role.emr_hbase_replica.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role"
 }
 
 resource "aws_iam_role_policy_attachment" "ec2_for_ssm_attachment" {
-  role       = aws_iam_role.emr_hbase_ingest.name
+  role       = aws_iam_role.emr_hbase_replica.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
 }
 
 #        Create and attach custom policies
-data "aws_iam_policy_document" "ingest_hbase_main" {
+data "aws_iam_policy_document" "hbase_replica_main" {
   statement {
     sid    = "ListInputBucket"
     effect = "Allow"
@@ -350,7 +315,7 @@ data "aws_iam_policy_document" "ingest_hbase_main" {
     ]
 
     resources = [
-      "${data.terraform_remote_state.common.outputs.config_bucket.arn}"
+      data.terraform_remote_state.common.outputs.config_bucket.arn
     ]
   }
 
@@ -505,7 +470,7 @@ data "aws_iam_policy_document" "ingest_hbase_main" {
     ]
 
     resources = [
-      "${aws_s3_bucket.manifest_bucket.arn}/${local.s3_manifest_prefix[local.environment]}/*",
+      "${data.terraform_remote_state.internal_compute.outputs.manifest_bucket["arn"]}/${local.s3_manifest_prefix[local.environment]}/*",
     ]
   }
 
@@ -518,7 +483,7 @@ data "aws_iam_policy_document" "ingest_hbase_main" {
     ]
 
     resources = [
-      aws_s3_bucket.manifest_bucket.arn,
+      data.terraform_remote_state.internal_compute.outputs.manifest_bucket["arn"],
     ]
   }
 
@@ -536,20 +501,21 @@ data "aws_iam_policy_document" "ingest_hbase_main" {
 
 
     resources = [
-      aws_kms_key.manifest_bucket_cmk.arn,
+      data.terraform_remote_state.internal_compute.outputs.manifest_bucket_cmk["arn"]
     ]
   }
 
-  statement {
-    sid    = "AllowACM"
-    effect = "Allow"
-
-    actions = [
-      "acm:*Certificate",
-    ]
-
-    resources = [aws_acm_certificate.emr_ingest_hbase.arn]
-  }
+  //todo: reinstate acm permission once acm fixed
+//  statement {
+//    sid    = "AllowACM"
+//    effect = "Allow"
+//
+//    actions = [
+//      "acm:*Certificate",
+//    ]
+//
+//    resources = [aws_acm_certificate.emr_ingest_hbase.arn]
+//  }
 
   statement {
     sid    = "GetPublicCerts"
@@ -566,11 +532,11 @@ data "aws_iam_policy_document" "ingest_hbase_main" {
 resource "aws_iam_policy" "ingest_hbase_main" {
   name        = "IngestHbaseS3Main"
   description = "Allow Ingestion EMR cluster to write HBase data to the input bucket"
-  policy      = data.aws_iam_policy_document.ingest_hbase_main.json
+  policy      = data.aws_iam_policy_document.hbase_replica_main.json
 }
 
 resource "aws_iam_role_policy_attachment" "emr_ingest_hbase_main" {
-  role       = aws_iam_role.emr_hbase_ingest.name
+  role       = aws_iam_role.emr_hbase_replica.name
   policy_arn = aws_iam_policy.ingest_hbase_main.arn
 }
 
@@ -595,7 +561,7 @@ resource "aws_iam_policy" "ingest_hbase_ec2" {
 }
 
 resource "aws_iam_role_policy_attachment" "ingest_hbase_ec2" {
-  role       = aws_iam_role.emr_hbase_ingest.name
+  role       = aws_iam_role.emr_hbase_replica.name
   policy_arn = aws_iam_policy.ingest_hbase_ec2.arn
 }
 
@@ -700,17 +666,18 @@ resource "aws_security_group_rule" "emr_hbase_egress_dks" {
   security_group_id = aws_security_group.emr_hbase_common.id
 }
 
-resource "aws_security_group_rule" "emr_hbase_ingress_dks" {
-
-  provider          = aws.management-crypto
-  description       = "Allow inbound requests to DKS from EMR HBase"
-  type              = "ingress"
-  from_port         = 8443
-  to_port           = 8443
-  protocol          = "tcp"
-  cidr_blocks       = aws_subnet.emr.*.cidr_block
-  security_group_id = data.terraform_remote_state.crypto.outputs.dks_sg_id[local.environment]
-}
+//  SG not required, since already created by internal-compute
+//resource "aws_security_group_rule" "emr_hbase_ingress_dks" {
+//
+//  provider          = ""
+//  description       = "Allow inbound requests to DKS from EMR HBase"
+//  type              = "ingress"
+//  from_port         = 8443
+//  to_port           = 8443
+//  protocol          = "tcp"
+//  cidr_blocks       = data.terraform_remote_state.internal_compute.outputs.hbase_emr_subnet["cidr_blocks"]
+//  security_group_id = data.terraform_remote_state.crypto.outputs.dks_sg_id[local.environment]
+//}
 
 resource "aws_security_group_rule" "emr_hbase_egress_metadata_store" {
   description              = "Allow outbound requests to Metadata Store DB from EMR HBase"
@@ -739,7 +706,7 @@ resource "aws_security_group_rule" "emr_common_egress_s3_vpce_https" {
   to_port     = 443
   protocol    = "tcp"
 
-  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.prefix_list_ids.s3]
+  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.s3]
   security_group_id = aws_security_group.emr_hbase_common.id
 }
 
@@ -750,7 +717,7 @@ resource "aws_security_group_rule" "emr_common_egress_s3_vpce_http" {
   to_port     = 80
   protocol    = "tcp"
 
-  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.prefix_list_ids.s3]
+  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.s3]
   security_group_id = aws_security_group.emr_hbase_common.id
 }
 
@@ -761,7 +728,7 @@ resource "aws_security_group_rule" "emr_common_egress_dynamodb_vpce_https" {
   to_port     = 443
   protocol    = "tcp"
 
-  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.prefix_list_ids.dynamodb]
+  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.dynamodb]
   security_group_id = aws_security_group.emr_hbase_common.id
 }
 
@@ -778,7 +745,8 @@ resource "aws_security_group_rule" "emr_common_egress_between_nodes" {
 resource "aws_security_group_rule" "egress_emr_common_to_internet" {
   description              = "Allow EMR access to Internet Proxy (for ACM-PCA)"
   type                     = "egress"
-  source_security_group_id = aws_security_group.internet_proxy_endpoint.id
+  source_security_group_id = data.terraform_remote_state.internal_compute.outputs.internet_proxy.sg
+//  source_security_group_id = aws_security_group.internet_proxy_endpoint.id
   protocol                 = "tcp"
   from_port                = 3128
   to_port                  = 3128
@@ -792,7 +760,8 @@ resource "aws_security_group_rule" "ingress_emr_common_to_internet" {
   protocol                 = "tcp"
   from_port                = 3128
   to_port                  = 3128
-  security_group_id        = aws_security_group.internet_proxy_endpoint.id
+  security_group_id        = data.terraform_remote_state.internal_compute.outputs.internet_proxy.sg
+//  security_group_id        = aws_security_group.internet_proxy_endpoint.id
 }
 
 # EMR will add more rules to this SG during cluster provisioning;
@@ -844,7 +813,7 @@ resource "aws_security_group_rule" "emr_server_ingress_workspaces_master_80" {
   from_port         = 80
   to_port           = 80
   protocol          = "tcp"
-  cidr_blocks       = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.id]
+  cidr_blocks       = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.cidr_block]
   security_group_id = aws_security_group.emr_hbase_master.id
 }
 
