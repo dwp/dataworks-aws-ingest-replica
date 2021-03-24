@@ -817,49 +817,6 @@ resource "aws_security_group_rule" "emr_server_ingress_workspaces_master_80" {
   security_group_id = aws_security_group.emr_hbase_master.id
 }
 
-//resource "aws_security_group_rule" "ucfs_stub_emr_master_ingress_hbase_retriever" {
-//  count                    = local.deploy_stub_broker[local.environment] ? length(local.stub_ucfs_hbase_ports) : 0
-//  description              = "Allow all inbound HBase requests to master from hbase retriever"
-//  type                     = "ingress"
-//  from_port                = local.stub_ucfs_hbase_ports[count.index]
-//  to_port                  = local.stub_ucfs_hbase_ports[count.index]
-//  protocol                 = "tcp"
-//  source_security_group_id = data.terraform_remote_state.ingestion.outputs.stub_ucfs_security_groups.hbase_retriever_sg_id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
-
-//resource "aws_security_group_rule" "ucfs_stub_emr_slave_ingress_hbase_retriever_slave" {
-//  count                    = local.deploy_stub_broker[local.environment] ? length(local.stub_ucfs_hbase_ports) : 0
-//  description              = "Allow all inbound HBase requests to slaves from hbase retriever"
-//  type                     = "ingress"
-//  from_port                = local.stub_ucfs_hbase_ports[count.index]
-//  to_port                  = local.stub_ucfs_hbase_ports[count.index]
-//  protocol                 = "tcp"
-//  source_security_group_id = data.terraform_remote_state.ingestion.outputs.stub_ucfs_security_groups.hbase_retriever_sg_id
-//  security_group_id        = aws_security_group.emr_hbase_slave.id
-//}
-
-//resource "aws_security_group_rule" "emr_server_ingress_htme_master_zookeeper" {
-//  description              = "Allow all inbound zookeeper requests from htme"
-//  type                     = "ingress"
-//  from_port                = 2181
-//  to_port                  = 2181
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.htme.id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
-//
-//resource "aws_security_group_rule" "emr_server_ingress_historic_importer_master_zookeeper" {
-//  description              = "Allow all inbound zookeeper requests from historic_importer"
-//  type                     = "ingress"
-//  from_port                = 2181
-//  to_port                  = 2181
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.historic_importer.id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
-
-
 # DW-4134 - Rule for the dev Workspaces, gated to dev - "Yarn NodeManager"
 resource "aws_security_group_rule" "emr_server_ingress_workspaces_master_8042" {
   count             = local.environment == "development" ? 1 : 0
@@ -884,26 +841,6 @@ resource "aws_security_group_rule" "emr_server_ingress_workspaces_master_8088" {
   security_group_id = aws_security_group.emr_hbase_master.id
 }
 
-//resource "aws_security_group_rule" "emr_server_ingress_htme_master_16000" {
-//  description              = "Allow all inbound HBase Region Server requests from htme"
-//  type                     = "ingress"
-//  from_port                = 16000
-//  to_port                  = 16000
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.htme.id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
-//
-//resource "aws_security_group_rule" "emr_server_ingress_historic_importer_master_16000" {
-//  description              = "Allow all inbound HBase Region Server requests from historic_importer"
-//  type                     = "ingress"
-//  from_port                = 16000
-//  to_port                  = 16000
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.historic_importer.id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
-
 # DW-4134 - Rule for the dev Workspaces, gated to dev - "Hbase"
 resource "aws_security_group_rule" "emr_server_ingress_workspaces_master_16010" {
   count             = local.environment == "development" ? 1 : 0
@@ -915,26 +852,6 @@ resource "aws_security_group_rule" "emr_server_ingress_workspaces_master_16010" 
   cidr_blocks       = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.cidr_block]
   security_group_id = aws_security_group.emr_hbase_master.id
 }
-//
-//resource "aws_security_group_rule" "emr_server_ingress_htme_master_16020" {
-//  description              = "Allow all inbound HBase Region Server requests from htme"
-//  type                     = "ingress"
-//  from_port                = 16020
-//  to_port                  = 16020
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.htme.id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
-
-//resource "aws_security_group_rule" "emr_server_ingress_historic_importer_master_16020" {
-//  description              = "Allow all inbound HBase Region Server requests from historic_importer"
-//  type                     = "ingress"
-//  from_port                = 16020
-//  to_port                  = 16020
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.historic_importer.id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
 
 # DW-4134 - Rule for the dev Workspaces, gated to dev - "Region Server"
 resource "aws_security_group_rule" "emr_server_ingress_workspaces_slave_16030" {
@@ -948,85 +865,6 @@ resource "aws_security_group_rule" "emr_server_ingress_workspaces_slave_16030" {
   security_group_id = aws_security_group.emr_hbase_slave.id
 }
 
-//resource "aws_security_group_rule" "emr_server_ingress_htme_master_16030" {
-//  description              = "Allow all inbound HBase Region Server requests from htme"
-//  type                     = "ingress"
-//  from_port                = 16030
-//  to_port                  = 16030
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.htme.id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
-
-//resource "aws_security_group_rule" "emr_server_ingress_historic_importer_master_16030" {
-//  description              = "Allow all inbound HBase Region Server requests from historic_importer"
-//  type                     = "ingress"
-//  from_port                = 16030
-//  to_port                  = 16030
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.historic_importer.id
-//  security_group_id        = aws_security_group.emr_hbase_master.id
-//}
-//
-//resource "aws_security_group_rule" "emr_server_ingress_htme_servers_16000" {
-//  description              = "Allow all inbound HBase Master requests from htme"
-//  type                     = "ingress"
-//  from_port                = 16000
-//  to_port                  = 16000
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.htme.id
-//  security_group_id        = aws_security_group.emr_hbase_slave.id
-//}
-
-//resource "aws_security_group_rule" "emr_server_ingress_historic_importer_servers_16000" {
-//  description              = "Allow all inbound HBase Master requests from historic_importer"
-//  type                     = "ingress"
-//  from_port                = 16000
-//  to_port                  = 16000
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.historic_importer.id
-//  security_group_id        = aws_security_group.emr_hbase_slave.id
-//}
-
-//resource "aws_security_group_rule" "emr_server_ingress_htme_servers_16020" {
-//  description              = "Allow all inbound HBase Master requests from htme"
-//  type                     = "ingress"
-//  from_port                = 16020
-//  to_port                  = 16020
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.htme.id
-//  security_group_id        = aws_security_group.emr_hbase_slave.id
-//}
-
-//resource "aws_security_group_rule" "emr_server_ingress_historic_importer_servers_16020" {
-//  description              = "Allow all inbound HBase Master requests from historic_importer"
-//  type                     = "ingress"
-//  from_port                = 16020
-//  to_port                  = 16020
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.historic_importer.id
-//  security_group_id        = aws_security_group.emr_hbase_slave.id
-//}
-
-//resource "aws_security_group_rule" "emr_server_ingress_htme_servers_16030" {
-//  description              = "Allow all inbound HBase Master requests from htme"
-//  type                     = "ingress"
-//  from_port                = 16030
-//  to_port                  = 16030
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.htme.id
-//  security_group_id        = aws_security_group.emr_hbase_slave.id
-//}
-//
-//resource "aws_security_group_rule" "emr_server_ingress_historic_importer_servers_16030" {
-//  description              = "Allow all inbound HBase Master requests from historic_importer"
-//  type                     = "ingress"
-//  from_port                = 16030
-//  to_port                  = 16030
-//  protocol                 = "tcp"
-//  source_security_group_id = aws_security_group.historic_importer.id
-//  security_group_id        = aws_security_group.emr_hbase_slave.id
-//}
 
 # DW-4134 - Rule for the dev Workspaces, gated to dev - "Spark"
 resource "aws_security_group_rule" "emr_server_ingress_workspaces_master_18080" {
