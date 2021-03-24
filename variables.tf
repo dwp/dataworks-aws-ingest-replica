@@ -10,5 +10,5 @@ variable "region" {
 }
 
 variable "emr_al2_ami_id" {
-  type    = string
+  type = string
 }

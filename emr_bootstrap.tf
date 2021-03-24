@@ -1,11 +1,11 @@
-//data "local_file" "start_ssm_script" {
-//  filename = "files/emr/start_ssm.sh"
-//}
-//
-//data "local_file" "cloud_watch" {
-//  filename = "files/emr/start_ssm.sh"
-//}
-//
+data "local_file" "start_ssm_script" {
+  filename = "files/emr/start_ssm.sh"
+}
+
+data "local_file" "cloud_watch" {
+  filename = "files/emr/start_ssm.sh"
+}
+
 //resource "aws_s3_bucket_object" "certificate_setup" {
 //  bucket = data.terraform_remote_state.common.outputs.config_bucket.id
 //  key    = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/certificate_setup.sh"
@@ -29,59 +29,59 @@
 //    },
 //  )
 //}
-//
-//resource "aws_s3_bucket_object" "unique_hostname" {
-//  bucket = data.terraform_remote_state.common.outputs.config_bucket.id
-//  key    = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/set_unique_hostname.sh"
-//  content = templatefile("files/emr/set_unique_hostname.sh",
-//    {
-//      aws_default_region = "eu-west-2"
-//      full_proxy         = data.terraform_remote_state.internal_compute.outputs.internet_proxy["url"]
-//      full_no_proxy      = join(",", data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.no_proxy_list)
-//      name               = "hbase-replica"
-//  })
-//
-//  tags = merge(
-//    local.common_tags,
-//    {
-//      Name = "hbase-replica-set-unique-hostname"
-//    },
-//  )
-//}
-//
-//resource "aws_s3_bucket_object" "start_ssm_script" {
-//  bucket     = data.terraform_remote_state.common.outputs.config_bucket.id
-//  key        = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/start_ssm.sh"
-//  content    = data.local_file.start_ssm_script.content
-//  kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk.arn
-//
-//  tags = merge(
-//    local.common_tags,
-//    {
-//      Name = "hbase-replica-start-ssm-script"
-//    },
-//  )
-//}
-//
-//resource "aws_s3_bucket_object" "generate_download_scripts_script" {
-//  bucket = data.terraform_remote_state.common.outputs.config_bucket.id
-//  key    = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/generate_download_scripts_script.sh"
-//  content = templatefile("files/emr/generate_download_scripts_script.tpl",
-//    {
-//      ingest_emr_scripts_location = "s3://${data.terraform_remote_state.common.outputs.config_bucket.id}/${local.ingest_emr_step_scripts_s3_prefix}"
-//  })
-//
-//  tags = merge(
-//    local.common_tags,
-//    {
-//      Name = "generate-download-scripts-script"
-//    },
-//  )
-//}
-//
+
+resource "aws_s3_bucket_object" "unique_hostname" {
+  bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/set_unique_hostname.sh"
+  content = templatefile("files/emr/set_unique_hostname.sh",
+    {
+      aws_default_region = "eu-west-2"
+      full_proxy         = data.terraform_remote_state.internal_compute.outputs.internet_proxy["url"]
+      full_no_proxy      = join(",", data.terraform_remote_state.internal_compute.outputs.vpc.vpc.no_proxy_list)
+      name               = "hbase-replica"
+  })
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "hbase-replica-set-unique-hostname"
+    },
+  )
+}
+
+resource "aws_s3_bucket_object" "start_ssm_script" {
+  bucket     = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key        = "${local.replica_emr_bootstrap_scripts_s3_prefix}/start_ssm.sh"
+  content    = data.local_file.start_ssm_script.content
+  kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk["arn"]
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "hbase-replica-start-ssm-script"
+    },
+  )
+}
+
+resource "aws_s3_bucket_object" "generate_download_scripts_script" {
+  bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/generate_download_scripts_script.sh"
+  content = templatefile("files/emr/generate_download_scripts_script.tpl",
+    {
+      ingest_emr_scripts_location = "s3://${data.terraform_remote_state.common.outputs.config_bucket["id"]}/${local.replica_emr_step_scripts_s3_prefix}"
+  })
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "generate-download-scripts-script"
+    },
+  )
+}
+
 //resource "aws_s3_bucket_object" "cloudwatch_sh" {
 //  bucket     = data.terraform_remote_state.common.outputs.config_bucket.id
-//  key        = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/cloudwatch.sh"
+//  key        = "${local.replica_emr_bootstrap_scripts_s3_prefix}/cloudwatch.sh"
 //  kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk.arn
 //  content = templatefile("files/ingest_emr/cloudwatch.sh.tpl",
 //    {

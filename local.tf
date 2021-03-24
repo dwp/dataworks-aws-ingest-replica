@@ -2,7 +2,7 @@ locals {
 
   input_bucket_business_data_root = "business-data"
   hbase_rootdir_prefix            = "${local.input_bucket_business_data_root}/${var.hbase_rootdir[local.environment]}"
-  hbase_rootdir                   = "${data.terraform_remote_state.ingest.outputs.s3_buckets.input_bucket}/${local.hbase_rootdir_prefix}"
+  hbase_rootdir                   = "${data.terraform_remote_state.ingest.outputs.s3_buckets["input_bucket"]}/${local.hbase_rootdir_prefix}"
 
   management_account = {
     development = "management-dev"
@@ -18,17 +18,19 @@ locals {
   }
 
   emr_applications = {
-    development = ["Spark", "Hive", "HBase", "Ganglia"]
+    development = ["HBase", "Ganglia"]
   }
 
-  ingest_emr_bootstrap_scripts_s3_prefix = "component/hbase_read_replica/bootstrap_scripts"
+  replica_emr_bootstrap_scripts_s3_prefix = "component/hbase_read_replica/bootstrap_scripts"
+  replica_emr_step_scripts_s3_prefix      = "component/ingest_emr/step_scripts"
+
 
   ingest_hbase_truststore_certs = {
-    development = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem"
-    qa          = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem"
-    integration = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem"
-    preprod     = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem"
-    production  = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/ucfs/root_ca_old.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket.id}/ca_certificates/dataworks/dataworks_root_ca.pem"
+    development = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
+    qa          = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
+    integration = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
+    preprod     = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
+    production  = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca_old.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
   }
 
   ingest_hbase_truststore_aliases = {

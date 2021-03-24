@@ -24,7 +24,7 @@ resource "aws_emr_cluster" "hbase_read_replica" {
   termination_protection            = false
   keep_job_flow_alive_when_no_steps = true
   service_role                      = aws_iam_role.emr_service.arn
-  log_uri                           = "s3n://${data.terraform_remote_state.security-tools.outputs.logstore_bucket.id}/${aws_s3_bucket_object.emr_logs_folder.id}"
+  log_uri                           = "s3n://${data.terraform_remote_state.security-tools.outputs.logstore_bucket["id"]}/${aws_s3_bucket_object.emr_logs_folder.id}"
   security_configuration            = aws_emr_security_configuration.hbase_ebs_encryption.name
   custom_ami_id                     = var.emr_al2_ami_id
   ebs_root_volume_size              = 40
@@ -53,12 +53,12 @@ resource "aws_emr_cluster" "hbase_read_replica" {
 
   ec2_attributes {
     // todo: create new subnets for hosting replica
-    subnet_id                         = data.terraform_remote_state.internal_compute.outputs.hbase_emr_subnet.id[0]
+    subnet_id                         = data.terraform_remote_state.internal_compute.outputs.hbase_emr_subnet["id"][0]
     instance_profile                  = aws_iam_instance_profile.emr_hbase_replica.id
     emr_managed_master_security_group = aws_security_group.emr_hbase_master.id
-    additional_master_security_groups = aws_security_group.emr_hbase_common.id
-    emr_managed_slave_security_group  = aws_security_group.emr_hbase_slave.id
-    additional_slave_security_groups  = aws_security_group.emr_hbase_common.id
+    additional_master_security_groups = aws_security_group.replica_emr_hbase_common.id
+    emr_managed_slave_security_group  = aws_security_group.replica_emr_hbase_slave.id
+    additional_slave_security_groups  = aws_security_group.replica_emr_hbase_common.id
     service_access_security_group     = aws_security_group.emr_hbase_service.id
     //    key_name                          = aws_key_pair.emr-key.key_name
   }
@@ -73,20 +73,20 @@ resource "aws_emr_cluster" "hbase_read_replica" {
   //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.certificate_setup.key)
   //  }
   //
-  //  bootstrap_action {
-  //    name = "Unique Hostname"
-  //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.unique_hostname.key)
-  //  }
-  //
-  //  bootstrap_action {
-  //    name = "Start SSM Agent"
-  //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.start_ssm_script.key)
-  //  }
-  //
-  //  bootstrap_action {
-  //    name = "Generate Download Scripts Script"
-  //    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.generate_download_scripts_script.key)
-  //  }
+    bootstrap_action {
+      name = "Unique Hostname"
+      path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.unique_hostname.key)
+    }
+
+    bootstrap_action {
+      name = "Start SSM Agent"
+      path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.start_ssm_script.key)
+    }
+
+    bootstrap_action {
+      name = "Generate Download Scripts Script"
+      path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.generate_download_scripts_script.key)
+    }
   //
   //  bootstrap_action {
   //    name = "CloudWatch Setup"
@@ -100,12 +100,11 @@ resource "aws_emr_cluster" "hbase_read_replica" {
     {
       "Classification": "hbase-site",
       "Properties": {
-
+        "hbase.rootdir": "s3://${local.hbase_rootdir}",
         "hbase.procedure.store.wal.use.hsync": "${var.hbase_procedure_store_wal_use_hsync[local.environment]}",
-        "hbase.hregion.max.filesize": "${var.hbase_hregion_max_filesize[local.environment]}",
         "hbase.master.balancer.stochastic.runMaxSteps": "${var.hbase_master_balancer_stochastic_run_max_steps[local.environment]}",
-        "hbase.regionserver.region.split.policy": "${var.hbase_regionserver_region_split_policy[local.environment]}",
 
+        "hbase.hregion.max.filesize": "${var.hbase_hregion_max_filesize[local.environment]}",
         "hbase.hregion.memstore.flush.size": "${var.hbase_hregion_memstore_flush_size[local.environment]}",
         "hbase.hregion.memstore.block.multiplier": "${var.hbase_hregion_memstore_block_multiplier[local.environment]}",
         "hbase.hstore.compaction.max": "${var.hbase_hstore_compaction_max[local.environment]}",
@@ -116,8 +115,9 @@ resource "aws_emr_cluster" "hbase_read_replica" {
         "hbase.regionserver.global.memstore.size.lowerLimit": "${var.hbase_regionserver_global_memstore_size_lower_limit[local.environment]}",
         "hbase.regionserver.global.memstore.size.upper.limit": "${var.hbase_regionserver_global_memstore_size_upper_limit[local.environment]}",
         "hbase.regionserver.global.memstore.size.upperLimit": "${var.hbase_regionserver_global_memstore_size_upper_limit[local.environment]}",
+        "hbase.regionserver.region.split.policy": "${var.hbase_regionserver_region_split_policy[local.environment]}",
 
-        "hbase.rootdir": "s3://${local.hbase_rootdir}",
+
         "hbase.server.keyvalue.maxsize": "${var.hbase_server_keyvalue_max_size_bytes[local.environment]}",
         "hbase.bucketcache.bucket.sizes": "${var.hbase_bucketcache_bucket_sizes[local.environment]}",
         "hbase.client.write.buffer": "${var.hbase_client_write_buffer[local.environment]}",
@@ -146,10 +146,6 @@ resource "aws_emr_cluster" "hbase_read_replica" {
         "hbase.balancer.max.balancing": "${var.hbase_balancer_max_balancing_milliseconds[local.environment]}",
         "hbase.master.balancer.maxRitPercent": "${var.hbase_balancer_max_rit_percent[local.environment]}",
         "hbase.master.wait.on.regionservers.mintostart": "${var.hbase_core_instance_count[local.environment]}",
-        "hbase.offpeak.start.hour": "${var.hbase_compaction_offpeak_start[local.environment]}",
-        "hbase.offpeak.end.hour": "${var.hbase_compaction_offpeak_end[local.environment]}",
-        "hbase.hstore.compaction.ratio": "${var.hbase_compaction_ratio[local.environment]}",
-        "hbase.hstore.compaction.ratio.offpeak": "${var.hbase_compaction_ratio_offpeak[local.environment]}",
         "hbase.client.scanner.timeout.period": "${var.hbase_client_scanner_timeout_ms[local.environment]}",
         "hbase.assignment.usezk": "${var.hbase_assignment_usezk[local.environment]}"
       }
@@ -157,7 +153,8 @@ resource "aws_emr_cluster" "hbase_read_replica" {
     {
       "Classification": "hbase",
       "Properties": {
-        "hbase.emr.storageMode": "${var.hbase_emr_storage_mode[local.environment]}"
+        "hbase.emr.storageMode": "${var.hbase_emr_storage_mode[local.environment]}",
+        "hbase.emr.readreplica.enabled": "true"
       }
     },
     {
@@ -228,7 +225,7 @@ resource "aws_emr_security_configuration" "hbase_ebs_encryption" {
             "LocalDiskEncryptionConfiguration" : {
                 "EnableEbsEncryption" : true,
                 "EncryptionKeyProviderType" : "AwsKms",
-                "AwsKmsKey" : "${data.terraform_remote_state.security-tools.outputs.ebs_cmk.arn}"
+                "AwsKmsKey" : "${data.terraform_remote_state.security-tools.outputs.ebs_cmk["arn"]}"
             }
         }
      }
@@ -506,16 +503,16 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   //todo: reinstate acm permission once acm fixed
-//  statement {
-//    sid    = "AllowACM"
-//    effect = "Allow"
-//
-//    actions = [
-//      "acm:*Certificate",
-//    ]
-//
-//    resources = [aws_acm_certificate.emr_ingest_hbase.arn]
-//  }
+  //  statement {
+  //    sid    = "AllowACM"
+  //    effect = "Allow"
+  //
+  //    actions = [
+  //      "acm:*Certificate",
+  //    ]
+  //
+  //    resources = [aws_acm_certificate.emr_ingest_hbase.arn]
+  //  }
 
   statement {
     sid    = "GetPublicCerts"
@@ -641,8 +638,8 @@ resource "aws_iam_role_policy_attachment" "emr_ebs_cmk" {
 #
 ########        Security groups
 
-resource "aws_security_group" "emr_hbase_common" {
-  name                   = "hbase_emr_common"
+resource "aws_security_group" "replica_emr_hbase_common" {
+  name                   = "replica_hbase_emr_common"
   description            = "Contains rules for both EMR cluster master nodes and EMR cluster slave nodes"
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.id
@@ -655,29 +652,16 @@ resource "aws_security_group" "emr_hbase_common" {
   )
 }
 
-resource "aws_security_group_rule" "emr_hbase_egress_dks" {
+resource "aws_security_group_rule" "replica_emr_hbase_egress_dks" {
   description = "Allow outbound requests to DKS from EMR HBase"
   type        = "egress"
   from_port   = 8443
   to_port     = 8443
   protocol    = "tcp"
 
-  cidr_blocks       = data.terraform_remote_state.crypto.outputs.dks_subnet.cidr_blocks
-  security_group_id = aws_security_group.emr_hbase_common.id
+  cidr_blocks       = data.terraform_remote_state.crypto.outputs.dks_subnet["cidr_blocks"]
+  security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
-
-//  SG not required, since already created by internal-compute
-//resource "aws_security_group_rule" "emr_hbase_ingress_dks" {
-//
-//  provider          = ""
-//  description       = "Allow inbound requests to DKS from EMR HBase"
-//  type              = "ingress"
-//  from_port         = 8443
-//  to_port           = 8443
-//  protocol          = "tcp"
-//  cidr_blocks       = data.terraform_remote_state.internal_compute.outputs.hbase_emr_subnet["cidr_blocks"]
-//  security_group_id = data.terraform_remote_state.crypto.outputs.dks_sg_id[local.environment]
-//}
 
 resource "aws_security_group_rule" "emr_hbase_egress_metadata_store" {
   description              = "Allow outbound requests to Metadata Store DB from EMR HBase"
@@ -686,7 +670,7 @@ resource "aws_security_group_rule" "emr_hbase_egress_metadata_store" {
   to_port                  = 3306
   protocol                 = "tcp"
   source_security_group_id = data.terraform_remote_state.ingest.outputs.metadata_store.rds.sg_id
-  security_group_id        = aws_security_group.emr_hbase_common.id
+  security_group_id        = aws_security_group.replica_emr_hbase_common.id
 }
 
 resource "aws_security_group_rule" "metadata_store_from_emr_hbase" {
@@ -694,7 +678,7 @@ resource "aws_security_group_rule" "metadata_store_from_emr_hbase" {
   from_port                = 3306
   to_port                  = 3306
   protocol                 = "tcp"
-  source_security_group_id = aws_security_group.emr_hbase_common.id
+  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
   security_group_id        = data.terraform_remote_state.ingest.outputs.metadata_store.rds.sg_id
   description              = "Metadata store from EMR HBase"
 }
@@ -707,7 +691,7 @@ resource "aws_security_group_rule" "emr_common_egress_s3_vpce_https" {
   protocol    = "tcp"
 
   prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.s3]
-  security_group_id = aws_security_group.emr_hbase_common.id
+  security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 
 resource "aws_security_group_rule" "emr_common_egress_s3_vpce_http" {
@@ -718,7 +702,7 @@ resource "aws_security_group_rule" "emr_common_egress_s3_vpce_http" {
   protocol    = "tcp"
 
   prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.s3]
-  security_group_id = aws_security_group.emr_hbase_common.id
+  security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 
 resource "aws_security_group_rule" "emr_common_egress_dynamodb_vpce_https" {
@@ -729,7 +713,7 @@ resource "aws_security_group_rule" "emr_common_egress_dynamodb_vpce_https" {
   protocol    = "tcp"
 
   prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.dynamodb]
-  security_group_id = aws_security_group.emr_hbase_common.id
+  security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 
 resource "aws_security_group_rule" "emr_common_egress_between_nodes" {
@@ -738,30 +722,30 @@ resource "aws_security_group_rule" "emr_common_egress_between_nodes" {
   from_port                = 0
   to_port                  = 0
   protocol                 = "-1"
-  source_security_group_id = aws_security_group.emr_hbase_common.id
-  security_group_id        = aws_security_group.emr_hbase_common.id
+  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
+  security_group_id        = aws_security_group.replica_emr_hbase_common.id
 }
 
 resource "aws_security_group_rule" "egress_emr_common_to_internet" {
   description              = "Allow EMR access to Internet Proxy (for ACM-PCA)"
   type                     = "egress"
   source_security_group_id = data.terraform_remote_state.internal_compute.outputs.internet_proxy.sg
-//  source_security_group_id = aws_security_group.internet_proxy_endpoint.id
-  protocol                 = "tcp"
-  from_port                = 3128
-  to_port                  = 3128
-  security_group_id        = aws_security_group.emr_hbase_common.id
+  //  source_security_group_id = aws_security_group.internet_proxy_endpoint.id
+  protocol          = "tcp"
+  from_port         = 3128
+  to_port           = 3128
+  security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 
 resource "aws_security_group_rule" "ingress_emr_common_to_internet" {
   description              = "Allow EMR access to Internet Proxy (for ACM-PCA)"
   type                     = "ingress"
-  source_security_group_id = aws_security_group.emr_hbase_common.id
+  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
   protocol                 = "tcp"
   from_port                = 3128
   to_port                  = 3128
   security_group_id        = data.terraform_remote_state.internal_compute.outputs.internet_proxy.sg
-//  security_group_id        = aws_security_group.internet_proxy_endpoint.id
+  //  security_group_id        = aws_security_group.internet_proxy_endpoint.id
 }
 
 # EMR will add more rules to this SG during cluster provisioning;
@@ -782,8 +766,8 @@ resource "aws_security_group" "emr_hbase_master" {
 
 # EMR will add more rules to this SG during cluster provisioning;
 # see https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-man-sec-groups.html#emr-sg-elasticmapreduce-master-private
-resource "aws_security_group" "emr_hbase_slave" {
-  name                   = "hbase_emr_slave"
+resource "aws_security_group" "replica_emr_hbase_slave" {
+  name                   = "replica_hbase_emr_slave"
   description            = "Contains rules for EMR cluster slave nodes"
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.id
@@ -862,7 +846,7 @@ resource "aws_security_group_rule" "emr_server_ingress_workspaces_slave_16030" {
   to_port           = 16030
   protocol          = "tcp"
   cidr_blocks       = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.cidr_block]
-  security_group_id = aws_security_group.emr_hbase_slave.id
+  security_group_id = aws_security_group.replica_emr_hbase_slave.id
 }
 
 
@@ -917,41 +901,6 @@ resource "aws_s3_bucket_object" "emr_logs_folder" {
   )
 }
 
-//resource "aws_cloudwatch_log_group" "ingest_hbase_yarn" {
-//  name              = local.cw_agent_log_group_name_ingest_yarn
-//  retention_in_days = 180
-//  tags              = local.common_tags
-//}
-//
-//resource "aws_cloudwatch_log_group" "ingest_hbase_bootstrapping" {
-//  name              = local.cw_agent_log_group_name_ingest_bootstrapping
-//  retention_in_days = 180
-//  tags              = local.common_tags
-//}
-//
-//resource "aws_cloudwatch_log_group" "ingest_hbase_steps" {
-//  name              = local.cw_agent_log_group_name_ingest_steps
-//  retention_in_days = 180
-//  tags              = local.common_tags
-//}
-//
-//resource "aws_cloudwatch_log_group" "ingest_hbase" {
-//  name              = local.cw_agent_log_group_name_ingest
-//  retention_in_days = 180
-//  tags              = local.common_tags
-//}
-//
-//resource "aws_cloudwatch_log_group" "ingest_cw_hbase_loggroup" {
-//  name              = local.cw_agent_hbase_loggrp_name_ingest
-//  retention_in_days = 180
-//  tags              = local.common_tags
-//}
-//
-//resource "aws_cloudwatch_log_group" "ingest_cw_hbase_hbck_loggroup" {
-//  name              = local.cw_agent_hbase_hbck_loggrp_name_ingest
-//  retention_in_days = 180
-//  tags              = local.common_tags
-//}
 //
 //resource "aws_route53_record" "hbase" {
 //  provider = aws.management_dns
@@ -962,40 +911,3 @@ resource "aws_s3_bucket_object" "emr_logs_folder" {
 //  records  = [aws_emr_cluster.hbase.master_public_dns]
 //}
 //
-//output "emr_common_sg" {
-//  value = {
-//    id = aws_security_group.emr_hbase_common.id
-//  }
-//}
-//
-//output "hbase_emr_security_groups" {
-//  value = {
-//    common_sg_id = aws_security_group.emr_hbase_common.id
-//    master_sg_id = aws_security_group.emr_hbase_master.id
-//    slave_sg_id  = aws_security_group.emr_hbase_slave.id
-//  }
-//}
-//
-//output "hbase_emr_subnet" {
-//  value = {
-//    cidr_blocks = aws_subnet.emr.*.cidr_block
-//    id          = aws_subnet.emr.*.id
-//  }
-//}
-//
-//output "hbase_emr_route_table" {
-//  value = {
-//    id = aws_route_table.emr.id
-//  }
-//}
-//
-//output "hbase_fqdn" {
-//  value = aws_route53_record.hbase.fqdn
-//}
-//
-//output "ingest_hbase_core_instance_group" {
-//  value = {
-//    desired_count = var.hbase_core_instance_count[local.environment]
-//  }
-//}
-
