@@ -52,4 +52,12 @@ locals {
     preprod     = "business-data/manifest"
     production  = "business-data/manifest"
   }
+
+  dns_subdomain = {
+    development = ".dev"
+    qa          = ".qa"
+    integration = ".int"
+    preprod     = ".pre"
+    production  = ""
+  }
 }
