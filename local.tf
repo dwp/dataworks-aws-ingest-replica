@@ -19,6 +19,10 @@ locals {
 
   emr_applications = {
     development = ["HBase", "Ganglia"]
+    qa          = ["HBase", "Ganglia"]
+    integration = ["HBase", "Ganglia"]
+    preprod     = ["HBase", "Ganglia"]
+    production  = ["HBase", "Ganglia"]
   }
 
   replica_emr_bootstrap_scripts_s3_prefix = "component/hbase_read_replica/bootstrap_scripts"
