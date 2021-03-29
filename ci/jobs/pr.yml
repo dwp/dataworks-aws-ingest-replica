@@ -4,6 +4,7 @@ jobs:
       - get: dataworks-aws-ingest-replica-pr
         trigger: true
         version: every
+      - get: al2-emr-ami
       - put: dataworks-aws-ingest-replica-pr
         params:
           path: dataworks-aws-ingest-replica-pr
