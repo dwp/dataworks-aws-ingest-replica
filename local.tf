@@ -18,7 +18,7 @@ locals {
   }
 
   emr_applications = {
-    development = ["HBase", "Ganglia"]
+    development = ["HBase", "Ganglia", "Hive", "Spark"]
     qa          = ["HBase", "Ganglia"]
     integration = ["HBase", "Ganglia"]
     preprod     = ["HBase", "Ganglia"]

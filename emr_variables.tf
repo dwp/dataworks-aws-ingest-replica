@@ -712,10 +712,10 @@ variable "hbase_master_instance_type" {
   type        = map(string)
   description = "The instance type for the master nodes - if changing, you should also look to change hbase_namenode_hdfs_threads to match new vCPU value"
   default = {
-    development = "m4.large"
-    qa          = "m4.large"
-    integration = "m4.large"
-    preprod     = "m4.large"
+    development = "m5.large"
+    qa          = "m5.large"
+    integration = "m5.large"
+    preprod     = "m5.large"
     production  = "r5.8xlarge" # Larger to allow memory for bulk loading reductions
   }
 }
