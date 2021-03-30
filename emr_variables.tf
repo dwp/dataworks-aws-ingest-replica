@@ -724,11 +724,12 @@ variable "hbase_master_instance_count" {
   type        = map(number)
   description = "Number of master instances, should be 1 or 3 to enable multiple masters"
   default = {
-    development = 3
-    qa          = 3
-    integration = 3
-    preprod     = 3
-    production  = 3
+    // External Hive metastore required for multiple master nodes
+    development = 1
+    qa          = 1
+    integration = 1
+    preprod     = 1
+    production  = 1
   }
 }
 
