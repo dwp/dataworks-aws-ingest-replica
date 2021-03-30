@@ -713,9 +713,9 @@ variable "hbase_master_instance_type" {
   description = "The instance type for the master nodes - if changing, you should also look to change hbase_namenode_hdfs_threads to match new vCPU value"
   default = {
     development = "m5.xlarge"
-    qa          = "m4.large"
-    integration = "m4.large"
-    preprod     = "m4.large"
+    qa          = "m5.xlarge"
+    integration = "m5.xlarge"
+    preprod     = "m5.xlarge"
     production  = "r5.8xlarge" # Larger to allow memory for bulk loading reductions
   }
 }
@@ -763,35 +763,11 @@ variable "hbase_core_instance_type_one" {
   type        = map(string)
   description = "The instance type for the core nodes - if changing, you should also look to change hbase_regionserver_handler_count and hbase_datanode_hdfs_threads to match new vCPU value"
   default = {
-    development = "m4.large"
-    qa          = "m4.large"
-    integration = "m4.large"
-    preprod     = "m4.large"
+    development = "m5.xlarge"
+    qa          = "m5.xlarge"
+    integration = "m5.xlarge"
+    preprod     = "m5.xlarge"
     production  = "m5.2xlarge" # Due to eu-#west-2a AZ outtage, r5's are a no go right now.
-  }
-}
-
-variable "hbase_core_instance_type_two" {
-  type        = map(string)
-  description = "The instance type for the core nodes - if changing, you should also look to change hbase_regionserver_handler_count and hbase_datanode_hdfs_threads to match new vCPU value"
-  default = {
-    development = "m5a.large"
-    qa          = "m5a.large"
-    integration = "m5a.large"
-    preprod     = "m5a.large"
-    production  = "m5a.2xlarge" # Due to eu-#west-2a AZ outtage, r5's are a no go right now.
-  }
-}
-
-variable "hbase_core_instance_type_three" {
-  type        = map(string)
-  description = "The instance type for the core nodes - if changing, you should also look to change hbase_regionserver_handler_count and hbase_datanode_hdfs_threads to match new vCPU value"
-  default = {
-    development = "m5d.large"
-    qa          = "m5d.large"
-    integration = "m5d.large"
-    preprod     = "m5d.large"
-    production  = "m5d.2xlarge" # Due to eu-#west-2a AZ outtage, r5's are a no go right now.
   }
 }
 
@@ -812,10 +788,10 @@ variable "hbase_core_instance_count" {
   type        = map(number)
   description = "The number of cores (region servers) to deploy"
   default = {
-    development = 4
-    qa          = 4
-    integration = 4
-    preprod     = 4
+    development = 2
+    qa          = 2
+    integration = 2
+    preprod     = 2
     production  = 175
   }
 }
