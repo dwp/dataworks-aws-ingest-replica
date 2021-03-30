@@ -87,6 +87,11 @@ resource "aws_emr_cluster" "hbase_read_replica" {
     name = "Generate Download Scripts Script"
     path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.generate_download_scripts_script.key)
   }
+
+  bootstrap_action {
+    name = "Installer"
+    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.installer.key)
+  }
   //
   //  bootstrap_action {
   //    name = "CloudWatch Setup"
@@ -163,33 +168,6 @@ resource "aws_emr_cluster" "hbase_read_replica" {
         "fs.s3.multipart.th.fraction.parts.completed": "${var.hbase_fs_multipart_th_fraction_parts_completed[local.environment]}",
         "fs.s3.maxConnections": "${var.hbase_s3_maxconnections[local.environment]}",
         "fs.s3.maxRetries": "${var.hbase_s3_max_retry_count[local.environment]}"
-      }
-    },
-    {
-      "Classification": "hdfs-site",
-      "Properties": {
-        "dfs.namenode.handler.count": "${var.hbase_namenode_hdfs_threads[local.environment]}",
-        "dfs.datanode.handler.count": "${var.hbase_datanode_hdfs_threads[local.environment]}",
-        "dfs.datanode.max.transfer.threads": "${var.hbase_datanode_max_transfer_threads[local.environment]}",
-        "dfs.client.socket-timeout": "${var.hbase_client_socket_timeout[local.environment]}",
-        "dfs.datanode.socket.write.timeout": "${var.hbase_datanode_socket_write_timeout[local.environment]}"
-      }
-    },
-    {
-      "Classification": "mapred-site",
-      "Properties": {
-        "mapreduce.task.timeout": "${var.emr_mapreduce_task_timeout_seconds[local.environment]}",
-        "mapreduce.map.java.opts": "${var.emr_mapreduce_map_java_opts[local.environment]}",
-        "mapreduce.reduce.java.opts": "${var.emr_mapreduce_reduce_java_opts[local.environment]}",
-        "mapreduce.map.memory.mb": "${var.emr_mapreduce_map_memory_mb[local.environment]}",
-        "mapreduce.reduce.memory.mb": "${var.emr_mapreduce_reduce_memory_mb[local.environment]}",
-        "mapreduce.reduce.shuffle.memory.limit.percent": "${var.emr_mapreduce_shuffle_memory_limit_percent[local.environment]}",
-        "yarn.app.mapreduce.am.resource.mb": "${var.emr_yarn_app_mapreduce_am_resource_mb[local.environment]}",
-        "yarn.scheduler.minimum-allocation-mb": "${var.emr_yarn_scheduler_minimum_allocation_mb[local.environment]}",
-        "yarn.scheduler.maximum-allocation-mb": "${var.emr_yarn_scheduler_maximum_allocation_mb[local.environment]}",
-        "yarn.nodemanager.resource.memory-mb": "${var.emr_yarn_nodemanager_resource_memory_mb[local.environment]}",
-        "yarn.nodemanager.vmem-check-enabled": "${var.emr_yarn_nodemanager_vmem_check_enabled[local.environment]}",
-        "yarn.nodemanager.pmem-check-enabled": "${var.emr_yarn_nodemanager_pmem_check_enabled[local.environment]}"
       }
     }
   ]
@@ -502,16 +480,16 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
   }
 
-    statement {
-      sid    = "AllowACM"
-      effect = "Allow"
+  statement {
+    sid    = "AllowACM"
+    effect = "Allow"
 
-      actions = [
-        "acm:*Certificate",
-      ]
+    actions = [
+      "acm:*Certificate",
+    ]
 
-      resources = [aws_acm_certificate.emr_replica_hbase.arn]
-    }
+    resources = [aws_acm_certificate.emr_replica_hbase.arn]
+  }
 
   statement {
     sid    = "GetPublicCerts"
@@ -655,20 +633,20 @@ resource "aws_security_group_rule" "vpce_ingress" {
   //todo: move to internal-compute vpc module
   security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.interface_vpce_sg_id
 
-  from_port = 443
-  to_port = 443
-  protocol = "tcp"
-  type = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  type                     = "ingress"
   source_security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 resource "aws_security_group_rule" "egress_to_vpce" {
   //todo: move to internal-compute vpc module
   security_group_id = aws_security_group.replica_emr_hbase_common.id
 
-  from_port = 443
-  to_port = 443
-  protocol = "tcp"
-  type = "egress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  type                     = "egress"
   source_security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.interface_vpce_sg_id
 }
 

@@ -10,6 +10,24 @@ data "local_file" "amazon_root_ca_1" {
   filename = "files/emr/AmazonRootCA1.pem"
 }
 
+resource "aws_s3_bucket_object" "installer" {
+  bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/installer.sh"
+  content = templatefile("files/emr/installer.sh",
+    {
+      full_proxy    = data.terraform_remote_state.internal_compute.outputs.internet_proxy["url"]
+      full_no_proxy = join(",", data.terraform_remote_state.internal_compute.outputs.vpc.vpc.no_proxy_list)
+    }
+  )
+
+  tags = merge(
+    local.common_tags,
+    {
+      Name = "hbase-replica-installer"
+    }
+  )
+}
+
 resource "aws_s3_bucket_object" "certificate_setup" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket.id
   key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/certificate_setup.sh"
@@ -90,10 +108,10 @@ resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
   kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk.arn
 
   tags = merge(
-  local.common_tags,
-  {
-    Name = "amazon-root-ca1-pem"
-  },
+    local.common_tags,
+    {
+      Name = "amazon-root-ca1-pem"
+    },
   )
 }
 
