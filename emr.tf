@@ -87,6 +87,11 @@ resource "aws_emr_cluster" "hbase_read_replica" {
     name = "Generate Download Scripts Script"
     path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.generate_download_scripts_script.key)
   }
+
+  bootstrap_action {
+    name = "Installer"
+    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.installer.key)
+  }
   //
   //  bootstrap_action {
   //    name = "CloudWatch Setup"
