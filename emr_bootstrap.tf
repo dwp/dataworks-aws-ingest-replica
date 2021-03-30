@@ -108,10 +108,10 @@ resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
   kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk.arn
 
   tags = merge(
-  local.common_tags,
-  {
-    Name = "amazon-root-ca1-pem"
-  },
+    local.common_tags,
+    {
+      Name = "amazon-root-ca1-pem"
+    },
   )
 }
 
