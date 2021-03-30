@@ -164,33 +164,6 @@ resource "aws_emr_cluster" "hbase_read_replica" {
         "fs.s3.maxConnections": "${var.hbase_s3_maxconnections[local.environment]}",
         "fs.s3.maxRetries": "${var.hbase_s3_max_retry_count[local.environment]}"
       }
-    },
-    {
-      "Classification": "hdfs-site",
-      "Properties": {
-        "dfs.namenode.handler.count": "${var.hbase_namenode_hdfs_threads[local.environment]}",
-        "dfs.datanode.handler.count": "${var.hbase_datanode_hdfs_threads[local.environment]}",
-        "dfs.datanode.max.transfer.threads": "${var.hbase_datanode_max_transfer_threads[local.environment]}",
-        "dfs.client.socket-timeout": "${var.hbase_client_socket_timeout[local.environment]}",
-        "dfs.datanode.socket.write.timeout": "${var.hbase_datanode_socket_write_timeout[local.environment]}"
-      }
-    },
-    {
-      "Classification": "mapred-site",
-      "Properties": {
-        "mapreduce.task.timeout": "${var.emr_mapreduce_task_timeout_seconds[local.environment]}",
-        "mapreduce.map.java.opts": "${var.emr_mapreduce_map_java_opts[local.environment]}",
-        "mapreduce.reduce.java.opts": "${var.emr_mapreduce_reduce_java_opts[local.environment]}",
-        "mapreduce.map.memory.mb": "${var.emr_mapreduce_map_memory_mb[local.environment]}",
-        "mapreduce.reduce.memory.mb": "${var.emr_mapreduce_reduce_memory_mb[local.environment]}",
-        "mapreduce.reduce.shuffle.memory.limit.percent": "${var.emr_mapreduce_shuffle_memory_limit_percent[local.environment]}",
-        "yarn.app.mapreduce.am.resource.mb": "${var.emr_yarn_app_mapreduce_am_resource_mb[local.environment]}",
-        "yarn.scheduler.minimum-allocation-mb": "${var.emr_yarn_scheduler_minimum_allocation_mb[local.environment]}",
-        "yarn.scheduler.maximum-allocation-mb": "${var.emr_yarn_scheduler_maximum_allocation_mb[local.environment]}",
-        "yarn.nodemanager.resource.memory-mb": "${var.emr_yarn_nodemanager_resource_memory_mb[local.environment]}",
-        "yarn.nodemanager.vmem-check-enabled": "${var.emr_yarn_nodemanager_vmem_check_enabled[local.environment]}",
-        "yarn.nodemanager.pmem-check-enabled": "${var.emr_yarn_nodemanager_pmem_check_enabled[local.environment]}"
-      }
     }
   ]
 EOF
