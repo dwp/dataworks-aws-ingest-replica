@@ -67,6 +67,14 @@ sudo -E acm-cert-retriever \
     --truststore-certs "${truststore_certs}"  >> /var/log/acm/acm-cert-retriever.log 2>&1
 
 
+cd /etc/pki/ca-trust/source/anchors/
+sudo touch analytical_ca.pem
+sudo chown hadoop:hadoop /etc/pki/tls/private/"${private_key_alias}".key /etc/pki/tls/certs/"${private_key_alias}".crt /etc/pki/ca-trust/source/anchors/analytical_ca.pem
+TRUSTSTORE_ALIASES="${truststore_aliases}"
+for F in $(echo $TRUSTSTORE_ALIASES | sed "s/,/ /g"); do
+    (sudo cat "$F.crt"; echo) >> analytical_ca.pem;
+done
+
 echo "Completed the certificate-setup.sh step of the EMR Cluster"
 
 ) >> /var/log/acm/nohup.log 2>&1

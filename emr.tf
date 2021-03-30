@@ -87,6 +87,11 @@ resource "aws_emr_cluster" "hbase_read_replica" {
     name = "Generate Download Scripts Script"
     path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.generate_download_scripts_script.key)
   }
+
+  bootstrap_action {
+    name = "Installer"
+    path = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket.id, aws_s3_bucket_object.installer.key)
+  }
   //
   //  bootstrap_action {
   //    name = "CloudWatch Setup"
@@ -475,16 +480,16 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
   }
 
-    statement {
-      sid    = "AllowACM"
-      effect = "Allow"
+  statement {
+    sid    = "AllowACM"
+    effect = "Allow"
 
-      actions = [
-        "acm:*Certificate",
-      ]
+    actions = [
+      "acm:*Certificate",
+    ]
 
-      resources = [aws_acm_certificate.emr_replica_hbase.arn]
-    }
+    resources = [aws_acm_certificate.emr_replica_hbase.arn]
+  }
 
   statement {
     sid    = "GetPublicCerts"
@@ -628,20 +633,20 @@ resource "aws_security_group_rule" "vpce_ingress" {
   //todo: move to internal-compute vpc module
   security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.interface_vpce_sg_id
 
-  from_port = 443
-  to_port = 443
-  protocol = "tcp"
-  type = "ingress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  type                     = "ingress"
   source_security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 resource "aws_security_group_rule" "egress_to_vpce" {
   //todo: move to internal-compute vpc module
   security_group_id = aws_security_group.replica_emr_hbase_common.id
 
-  from_port = 443
-  to_port = 443
-  protocol = "tcp"
-  type = "egress"
+  from_port                = 443
+  to_port                  = 443
+  protocol                 = "tcp"
+  type                     = "egress"
   source_security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.interface_vpce_sg_id
 }
 
