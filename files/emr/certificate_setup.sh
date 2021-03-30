@@ -9,6 +9,7 @@ sudo chown hadoop:hadoop /opt/emr
 sudo chown hadoop:hadoop /var/log/acm
 sudo chown hadoop:hadoop /var/log/cdl
 sudo chown hadoop:hadoop /var/log/hdl
+sudo chown hadoop:hadoop /var/log/installer
 sudo chmod a+rwx /var/log/acm
 
 (
