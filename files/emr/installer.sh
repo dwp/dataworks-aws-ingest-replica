@@ -16,6 +16,12 @@ if [ ! -x $PIP ]; then
   PIP=/usr/bin/pip-3.6
 fi
 
+if [ ! -d "/var/log/installer" ]; then
+  sudo mkdir -p /var/log/installer
+  sudo chown hadoop:hadoop /var/log/installer
+fi
+
+
 sudo -E $PIP install boto3 >> /var/log/installer/install-boto3.log 2>&1
 sudo -E $PIP install requests >> /var/log/installer/install-requests.log 2>&1
 sudo -E $PIP install pyspark >> /var/log/installer/install-pyspark.log 2>&1

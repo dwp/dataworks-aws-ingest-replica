@@ -26,7 +26,7 @@ locals {
   }
 
   replica_emr_bootstrap_scripts_s3_prefix = "component/hbase_read_replica/bootstrap_scripts"
-  replica_emr_step_scripts_s3_prefix      = "component/ingest_emr/step_scripts"
+  replica_emr_step_scripts_s3_prefix      = "component/hbase_read_replica/step_scripts"
 
 
   ingest_hbase_truststore_certs = {

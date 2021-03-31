@@ -4,10 +4,12 @@ sudo mkdir -p /opt/emr
 sudo mkdir -p /var/log/acm
 sudo mkdir -p /var/log/cdl
 sudo mkdir -p /var/log/hdl
+sudo mkdir -p /var/log/installer
 sudo chown hadoop:hadoop /opt/emr
 sudo chown hadoop:hadoop /var/log/acm
 sudo chown hadoop:hadoop /var/log/cdl
 sudo chown hadoop:hadoop /var/log/hdl
+sudo chown hadoop:hadoop /var/log/installer
 sudo chmod a+rwx /var/log/acm
 
 (
