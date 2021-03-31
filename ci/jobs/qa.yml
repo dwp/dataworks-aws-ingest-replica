@@ -2,6 +2,9 @@ jobs:
   - name: qa
     max_in_flight: 1
     plan:
+      - get: al2-emr-ami
+        passed:
+          - development
       - get: dataworks-aws-ingest-replica
         trigger: true
         passed:
