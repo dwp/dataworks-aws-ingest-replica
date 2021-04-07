@@ -79,3 +79,62 @@ meta:
       params:
         DETAILED_EXITCODE: -detailed-exitcode
 
+    terminate-replica:
+      task: terminate-hbase-replica
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: ((dataworks.docker_awscli_repository))
+            version: ((dataworks.docker_awscli_version))
+            tag: ((dataworks.docker_awscli_version))
+        params:
+          AWS_ROLE_ARN: UNSET
+          AWS_REGION: ((dataworks.aws_region))
+          AWS_DEFAULT_REGION: ((dataworks.aws_region))
+        run:
+          path: sh
+          dir: emr-check
+          args:
+            - -ec
+            - |
+              source /assume-role
+
+              function cluster_status {
+                local cluster_id=$1
+                aws --output json --region="$AWS_REGION" \
+                  emr describe-cluster --cluster-id $cluster_id | jq -r '.Cluster.Status.State'
+              }
+
+              cluster_id=$(aws --output json --region="$AWS_REGION" \
+                               emr list-clusters --active --query "Clusters[?Name=='hbase-read-replica'].[Id][0][0]" | \
+                           tr -d '"')
+
+              if [[ $cluster_id != "null" ]]; then
+                # Terminate using AWS CLI because targetted destroys can cause
+                # issues with TF (orphaned resources, etc.)
+                aws --region="$AWS_REGION" emr terminate-clusters --cluster-ids $cluster_id
+
+                i=0
+                while [[ $i -le 360 ]]; do
+                  status=$(cluster_status $cluster_id)
+                  if [ "$status" == "TERMINATED" ]; then
+                    echo status: \'$status\', cluster terminated exiting normally.
+                    exit 0
+                  fi
+
+                  if [ "$status" == "TERMINATED_WITH_ERRORS" ]; then
+                    echo status: \'$status\', cluster terminated with errors exiting normally.
+                    exit 0
+                  fi
+
+                  i=$((i+1))
+                  echo status: \'$status\', sleeping for 10 seconds.
+                  sleep 10
+                done
+
+                echo Monitoring of the destruction has timed out.
+              else
+                echo No cluster exists, nothing to terminate.
+              fi

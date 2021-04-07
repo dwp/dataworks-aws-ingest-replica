@@ -9,3 +9,6 @@ groups:
   - name: update-pipeline
     jobs:
       - update-pipeline
+  - name: utility
+    jobs:
+      - terminate-replica

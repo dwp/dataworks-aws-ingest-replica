@@ -1,0 +1,9 @@
+jobs:
+  - name: terminate-replica
+    max_in_flight: 1
+    plan:
+      - .: (( inject meta.plan.terminate-replica ))
+        config:
+          params:
+            TF_WORKSPACE: default
+            AWS_ROLE_ARN: arn:aws:iam::((aws_account.development)):role/ci
