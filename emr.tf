@@ -163,8 +163,8 @@ resource "aws_emr_cluster" "hbase_read_replica" {
       }
     },
 {
-    "classification": "hdfs-site",
-    "properties": {
+    "Classification": "hdfs-site",
+    "Properties": {
       "dfs.replication": "1"
     }
   },
