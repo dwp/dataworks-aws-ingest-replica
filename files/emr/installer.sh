@@ -9,16 +9,22 @@ export HTTPS_PROXY="$FULL_PROXY"
 export no_proxy="$FULL_NO_PROXY"
 export NO_PROXY="$FULL_NO_PROXY"
 
-PIP=/usr/bin/pip3
+if [ ! -d "/var/log/installer" ]; then
+  sudo mkdir -p /var/log/installer
+  sudo chown hadoop:hadoop /var/log/installer
+fi
+
+PIP=/usr/local/bin/pip3
 
 if [ ! -x $PIP ]; then
   # EMR <= 5.29.0 doesn't install a /usr/bin/pip3 wrapper
   PIP=/usr/bin/pip-3.6
 fi
 
-if [ ! -d "/var/log/installer" ]; then
-  sudo mkdir -p /var/log/installer
-  sudo chown hadoop:hadoop /var/log/installer
+if [ ! -x $PIP ]; then
+  # PIP not found
+  echo "pip3 not found" >> /var/log/installer/installer.log 2>&1
+  exit 1
 fi
 
 
