@@ -162,11 +162,18 @@ resource "aws_emr_cluster" "hbase_read_replica" {
         "hbase.emr.readreplica.enabled": "true"
       }
     },
-{
+ {
     "Classification": "hdfs-site",
     "Properties": {
       "dfs.replication": "1"
     }
+  },
+ {
+    "classification": "core-site",
+    "properties": {
+      "fs.s3n.impl": "com.amazon.ws.emr.hadoop.fs.EmrFileSystem"
+    },
+    "configurations": []
   },
     {
       "Classification": "emrfs-site",
