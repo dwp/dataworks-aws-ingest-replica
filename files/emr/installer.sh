@@ -18,6 +18,11 @@ PIP=/usr/local/bin/pip3
 
 if [ ! -x $PIP ]; then
   # EMR <= 5.29.0 doesn't install a /usr/bin/pip3 wrapper
+  PIP=/usr/bin/pip3
+fi
+
+if [ ! -x $PIP ]; then
+  # EMR <= 5.29.0 doesn't install a /usr/bin/pip3 wrapper
   PIP=/usr/bin/pip-3.6
 fi
 
