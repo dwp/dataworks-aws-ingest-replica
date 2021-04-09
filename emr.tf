@@ -168,13 +168,7 @@ resource "aws_emr_cluster" "hbase_read_replica" {
       "dfs.replication": "1"
     }
   },
- {
-    "Classification": "core-site",
-    "Properties": {
-      "fs.s3.impl": "com.amazon.ws.emr.hadoop.fs.EmrFileSystem"
-    }
-  },
-    {
+  {
       "Classification": "emrfs-site",
       "Properties": {
         "fs.s3.multipart.th.fraction.parts.completed": "${var.hbase_fs_multipart_th_fraction_parts_completed[local.environment]}",
