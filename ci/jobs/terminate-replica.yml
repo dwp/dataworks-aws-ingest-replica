@@ -2,8 +2,22 @@ jobs:
   - name: terminate-replica
     max_in_flight: 1
     plan:
+      - get: dataworks-aws-ingest-replica
       - .: (( inject meta.plan.terminate-replica ))
         config:
           params:
             TF_WORKSPACE: default
             AWS_ROLE_ARN: arn:aws:iam::((aws_account.development)):role/ci
+  - name: redeploy-replica
+    max_in_flight: 1
+    plan:
+      - get: al2-emr-ami
+      - get: dataworks-aws-ingest-replica
+      - .: (( inject meta.plan.terminate-replica ))
+        config:
+          params:
+            TF_WORKSPACE: default
+            AWS_ROLE_ARN: arn:aws:iam::((aws_account.development)):role/ci
+      - .: (( inject meta.plan.terraform-bootstrap ))
+      - .: (( inject meta.plan.terraform-apply ))
+      - .: (( inject meta.plan.terraform-plan ))

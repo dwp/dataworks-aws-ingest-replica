@@ -12,3 +12,4 @@ groups:
   - name: utility
     jobs:
       - terminate-replica
+      - redeploy-replica
