@@ -38,5 +38,3 @@ sudo -E $PIP install requests >> /var/log/installer/install-requests.log 2>&1
 sudo yum install -y python3-devel >> /var/log/installer/install-pycrypto.log 2>&1
 sudo -E $PIP install pycryptodome >> /var/log/installer/install-pycrypto.log 2>&1
 sudo yum remove -y python3-devel >> /var/log/installer/install-pycrypto.log 2>&1
-
-sudo chmod --recursive a+rwx /var/log/hbase
