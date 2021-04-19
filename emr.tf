@@ -25,7 +25,7 @@ resource "aws_emr_cluster" "hbase_read_replica" {
   keep_job_flow_alive_when_no_steps = true
   service_role                      = aws_iam_role.emr_service.arn
   log_uri                           = "s3n://${data.terraform_remote_state.security-tools.outputs.logstore_bucket["id"]}/${aws_s3_bucket_object.emr_logs_folder.id}"
-  security_configuration            = aws_emr_security_configuration.replica_hbase_ebs_encryption.name
+  security_configuration            = aws_emr_security_configuration.ingest_read_replica.name
   custom_ami_id                     = var.emr_al2_ami_id
   ebs_root_volume_size              = 40
 
@@ -197,24 +197,29 @@ EOF
 
 #
 ########        Additional EMR cluster config
-resource "aws_emr_security_configuration" "replica_hbase_ebs_encryption" {
-  name = "replica_hbase_ebs_encryption"
+resource "aws_emr_security_configuration" "ingest_read_replica" {
+  name = "ingest_read_replica"
 
-  configuration = <<EOF
-{
-    "EncryptionConfiguration": {
-        "EnableInTransitEncryption" : false,
-        "EnableAtRestEncryption" : true,
-        "AtRestEncryptionConfiguration" : {
-            "LocalDiskEncryptionConfiguration" : {
-                "EnableEbsEncryption" : true,
-                "EncryptionKeyProviderType" : "AwsKms",
-                "AwsKmsKey" : "${data.terraform_remote_state.security-tools.outputs.ebs_cmk["arn"]}"
-            }
+  configuration = jsonencode(
+  {
+    EncryptionConfiguration : {
+      EnableInTransitEncryption : false,
+      EnableAtRestEncryption : true,
+      AtRestEncryptionConfiguration : {
+        S3EncryptionConfiguration = {
+          EncryptionMode             = "CSE-Custom"
+          S3Object                   = "s3://${data.terraform_remote_state.management_artefact.outputs.artefact_bucket.id}/emr-encryption-materials-provider/encryption-materials-provider-all.jar"
+          EncryptionKeyProviderClass = "uk.gov.dwp.dataworks.dks.encryptionmaterialsprovider.DKSEncryptionMaterialsProvider"
         }
-     }
-}
-EOF
+        LocalDiskEncryptionConfiguration : {
+          EnableEbsEncryption : true,
+          EncryptionKeyProviderType : "AwsKms",
+          AwsKmsKey : data.terraform_remote_state.security-tools.outputs.ebs_cmk["arn"]
+        }
+      }
+    }
+  }
+  )
 
 }
 
