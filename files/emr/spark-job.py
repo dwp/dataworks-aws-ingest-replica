@@ -2,25 +2,24 @@
 import argparse
 import base64
 import binascii
+import concurrent.futures
+import csv
 import datetime
+import io
 import itertools
 import json
-import os
-import time
-from subprocess import PIPE, run
 import logging
-import sys
+import os
 import re
+import sys
+import time
 
-import boto3
 import requests
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from pyspark.sql import SparkSession
-from pyspark.sql.types import Row
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3 import Retry
-import concurrent.futures
 
 DKS_ENDPOINT = "${dks_decrypt_endpoint}"
 DKS_DECRYPT_ENDPOINT = DKS_ENDPOINT + "/datakey/actions/decrypt/"
@@ -28,6 +27,7 @@ DKS_DECRYPT_ENDPOINT = DKS_ENDPOINT + "/datakey/actions/decrypt/"
 INCREMENTAL_OUTPUT_BUCKET = "${incremental_output_bucket}"
 INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 
+LOG_PATH = "${log_path}"
 
 def setup_logging(log_level, log_path):
     logger = logging.getLogger()
@@ -39,7 +39,10 @@ def setup_logging(log_level, log_path):
     else:
         handler = logging.FileHandler(log_path)
 
-    json_format = "{ 'timestamp': '%(asctime)s', 'log_level': '%(levelname)s', 'message': '%(message)s' }"
+    json_format = (
+        "{ 'timestamp': '%(asctime)s', 'log_level': '%(levelname)s', 'message': "
+        "'%(message)s' } "
+    )
     handler.setFormatter(logging.Formatter(json_format))
     logger.addHandler(handler)
     new_level = logging.getLevelName(log_level.upper())
@@ -50,7 +53,7 @@ def setup_logging(log_level, log_path):
 
 _logger = setup_logging(
     log_level="INFO",
-    log_path="${log_path}",
+    log_path=LOG_PATH,
 )
 
 
@@ -170,12 +173,18 @@ def process_collection(
         record_id = y[0]
         timestamp = y[2]
         record = decrypt_message(y[3])
-        return Row(id=record_id, timestamp=timestamp, record=record)
+        return [record_id, timestamp, record]
+
+    def list_to_csv_str(x):
+        output = io.StringIO("")
+        csv.writer(output).writerow(x)
+        return output.getvalue().strip()
 
     rdd = (
         spark.sparkContext.textFile(f"hdfs:///{hive_table_name}")
         .filter(filter_rows)
         .map(process_record)
+        .map(list_to_csv_str)
     )
 
     s3_collection_dir = s3_root_path + hive_table_name + "/"
@@ -185,16 +194,20 @@ def process_collection(
 
 
 def create_hive_table(collection_tuple):
-    table_name = collection_tuple[0]
-    s3_path = collection_tuple[1]
-    hive_statements = [
-        f"drop table if exists {table_name}; ",
-        f"create external table if not exists {table_name}(val string) stored as "
-        f'textfile location "{s3_path}"; ',
-    ]
-
-    for sql in hive_statements:
-        spark.sql(sql)
+    table_name, s3_path = collection_tuple
+    drop_table = f"drop table if exists {table_name}"
+    create_table = (
+        f"create external table if not exists {table_name} "
+        + "(id string, record_timestamp bigint, record string) "
+        + "ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'"
+        + "    WITH SERDEPROPERTIES ( "
+        + '    "separatorChar" = ",",'
+        + '    "quoteChar"     = "\\""'
+        + "           )"
+        + f'stored as textfile location "{s3_path}"'
+    )
+    spark.sql(drop_table)
+    spark.sql(create_table)
 
 
 def main(spark, collections, start_time, end_time, s3_root_path, business_date_hour):
@@ -215,12 +228,12 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
         raise e
 
     # create HIVE tables
-    # try:
-    #     with concurrent.futures.ThreadPoolExecutor() as executor:
-    #         executor.map(create_hive_table, list(all_collections))
-    # except Exception as e:
-    #     _logger.error(e)
-    #     raise e
+    try:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            executor.map(create_hive_table, list(all_collections))
+    except Exception as e:
+        _logger.error("Could not create HIVE tables")
+        raise e
 
 
 if __name__ == "__main__":
