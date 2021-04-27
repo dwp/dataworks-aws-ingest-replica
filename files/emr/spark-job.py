@@ -29,6 +29,7 @@ INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 
 LOG_PATH = "${log_path}"
 
+
 def setup_logging(log_level, log_path):
     logger = logging.getLogger()
     for old_handler in logger.handlers:
@@ -209,9 +210,24 @@ def create_hive_table(collection_tuple):
     spark.sql(drop_table)
     spark.sql(create_table)
 
+    drop_view = f"drop view if exists v_{table_name}_latest;"
+    query = (
+        f"create view v_{table_name}_latest as with ranked as (   "
+        + f"select id, record_timestamp, row_number() over"
+        + f"(partition by id order by id desc, record_timestamp desc) RANK"
+        + f"from {table_name})"
+        + f"select id, record_timestamp from ranked where RANK = 1;"
+    )
+
+    create_view = f"create view v_{table_name}_latest as {query};"
+
+    spark.sql(drop_view)
+    spark.sql(create_view)
+
 
 def main(spark, collections, start_time, end_time, s3_root_path, business_date_hour):
     replica_metadata_refresh()
+
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             all_collections = executor.map(
@@ -227,13 +243,9 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
         _logger.error(e)
         raise e
 
-    # create HIVE tables
-    try:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            executor.map(create_hive_table, list(all_collections))
-    except Exception as e:
-        _logger.error("Could not create HIVE tables")
-        raise e
+    # create Hive tables
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        executor.map(create_hive_table, list(all_collections))
 
 
 if __name__ == "__main__":
