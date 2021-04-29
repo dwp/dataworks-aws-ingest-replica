@@ -191,11 +191,12 @@ def process_collection(
     s3_collection_dir = s3_root_path + hive_table_name + "/"
     s3_output_dir = s3_collection_dir + business_date_hour + "/"
     rdd.saveAsTextFile(s3_output_dir)
-    return hive_table_name, s3_collection_dir
+    num_records = rdd.count()
+    return hive_table_name, s3_collection_dir, num_records
 
 
 def create_hive_table(collection_tuple):
-    table_name, s3_path = collection_tuple
+    table_name, s3_path, _ = collection_tuple
     drop_table = f"drop table if exists {table_name}"
     create_table = (
         f"create external table if not exists {table_name} "
@@ -210,17 +211,15 @@ def create_hive_table(collection_tuple):
     spark.sql(drop_table)
     spark.sql(create_table)
 
-    drop_view = f"drop view if exists v_{table_name}_latest;"
-    query = (
-        f"create view v_{table_name}_latest as with ranked as (   "
-        + f"select id, record_timestamp, row_number() over"
-        + f"(partition by id order by id desc, record_timestamp desc) RANK"
-        + f"from {table_name})"
-        + f"select id, record_timestamp from ranked where RANK = 1;"
-    )
-
-    create_view = f"create view v_{table_name}_latest as {query};"
-
+    drop_view = f"drop view if exists v_{table_name}_latest"
+    create_view = f"""
+                    create view v_{table_name}_latest as with ranked as (
+                    select id, record_timestamp, record, row_number() over
+                    (partition by id order by id desc, record_timestamp desc) RANK
+                    from {table_name})
+                    select id, record_timestamp, record from ranked where RANK = 1
+                    """
+    _logger.warning(create_view)
     spark.sql(drop_view)
     spark.sql(create_view)
 
@@ -230,7 +229,7 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
 
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            all_collections = executor.map(
+            all_collections = list(executor.map(
                 process_collection,
                 collections,
                 itertools.repeat(spark),
@@ -238,14 +237,18 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
                 itertools.repeat(end_time),
                 itertools.repeat(s3_root_path),
                 itertools.repeat(business_date_hour),
-            )
+            ))
     except Exception as e:
         _logger.error(e)
         raise e
 
+    total_records = sum([i[2] for i in all_collections])
+
     # create Hive tables
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(create_hive_table, list(all_collections))
+
+    return total_records
 
 
 if __name__ == "__main__":
@@ -260,8 +263,13 @@ if __name__ == "__main__":
     )
     s3_root_path = f"s3://{INCREMENTAL_OUTPUT_BUCKET}/{INCREMENTAL_OUTPUT_PREFIX}"
     perf_start = time.perf_counter()
-    main(spark, collections, start_time, end_time, s3_root_path, business_date_hour)
+    total_records = main(
+        spark, collections, start_time, end_time, s3_root_path, business_date_hour
+    )
 
     perf_end = time.perf_counter()
     total_time = round(perf_end - perf_start)
-    _logger.info(f"time taken to process collections: {total_time}")
+    _logger.info(
+        f"time taken to process collections: {total_records} records"
+        + f" in {total_time}s"
+    )
