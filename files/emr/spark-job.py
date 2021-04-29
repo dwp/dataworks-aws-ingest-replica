@@ -65,6 +65,7 @@ def get_parameters():
     )
     # Parse command line inputs and set defaults
     parser.add_argument("--correlation_id", default=0, type=int)
+    parser.add_argument("--collections", type=str, nargs="+")
     parser.add_argument("--start_time", default=0, type=int)
     parser.add_argument(
         "--end_time",
@@ -74,11 +75,6 @@ def get_parameters():
     args, unrecognized_args = parser.parse_known_args()
 
     return args
-
-
-def get_collections():
-    """Get list of collections to process. todo """
-    return ["demo:claimant", "demo:statement", "demo:contract"]
 
 
 def replica_metadata_refresh():
@@ -255,7 +251,7 @@ if __name__ == "__main__":
     args = get_parameters()
     start_time = args.start_time
     end_time = args.end_time
-    collections = get_collections()
+    collections = list(args.collections)
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
 
     business_date_hour = datetime.datetime.fromtimestamp(end_time / 1000.0).strftime(
