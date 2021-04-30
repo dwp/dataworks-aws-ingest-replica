@@ -15,9 +15,12 @@ import sys
 import time
 
 import requests
+from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
-from pyspark.sql import SparkSession
+
+if __name__ == "__main__":
+    from pyspark.sql import SparkSession
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3 import Retry
 
@@ -99,6 +102,24 @@ def retry_requests(retries=10, backoff=1, methods=None):
     return requests_session
 
 
+def encrypt_plaintext(data_key, plaintext_string, iv=None):
+    if iv is None:
+        initialisation_vector = Random.new().read(AES.block_size)
+        iv_int = int(binascii.hexlify(initialisation_vector), 16)
+        iv = base64.b64encode(initialisation_vector)
+    else:
+        initialisation_vector = base64.b64decode(iv.encode("ascii"))
+        iv_int = int(binascii.hexlify(initialisation_vector), 16)
+        iv = base64.b64encode(initialisation_vector)
+
+    counter = Counter.new(AES.block_size * 8, initial_value=iv_int)
+    aes = AES.new(base64.b64decode(data_key), AES.MODE_CTR, counter=counter)
+    ciphertext = aes.encrypt(plaintext_string.encode("utf8"))
+    ciphertext = base64.b64encode(ciphertext)
+
+    return ciphertext.decode("ascii"), iv.decode("ascii")
+
+
 def get_plaintext_key(url, kek, cek):
     """Call DKS to return decrypted datakey."""
     request = retry_requests(methods=["POST"])
@@ -145,6 +166,27 @@ def decrypt_message(item):
     return json.dumps(json_item)
 
 
+def filter_rows(x):
+    if x:
+        return str(x).find("column=") > -1
+    else:
+        return False
+
+
+def process_record(x):
+    y = [str.strip(i) for i in re.split(r" *column=|, *timestamp=|, *value=", x)]
+    record_id = y[0]
+    timestamp = y[2]
+    record = decrypt_message(y[3])
+    return [record_id, timestamp, record]
+
+
+def list_to_csv_str(x):
+    output = io.StringIO("")
+    csv.writer(output).writerow(x)
+    return output.getvalue().strip()
+
+
 def process_collection(
     collection, spark, start_time, end_time, s3_root_path, business_date_hour
 ):
@@ -161,21 +203,6 @@ def process_collection(
         f"| hbase shell  "
         f"| hdfs dfs -put -f - hdfs:///{hive_table_name}"
     )
-
-    def filter_rows(x):
-        return x.find("column=") > -1
-
-    def process_record(x):
-        y = [str.strip(i) for i in re.split(r" *column=|, *timestamp=|, *value=", x)]
-        record_id = y[0]
-        timestamp = y[2]
-        record = decrypt_message(y[3])
-        return [record_id, timestamp, record]
-
-    def list_to_csv_str(x):
-        output = io.StringIO("")
-        csv.writer(output).writerow(x)
-        return output.getvalue().strip()
 
     rdd = (
         spark.sparkContext.textFile(f"hdfs:///{hive_table_name}")
@@ -225,15 +252,17 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
 
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            all_collections = list(executor.map(
-                process_collection,
-                collections,
-                itertools.repeat(spark),
-                itertools.repeat(start_time),
-                itertools.repeat(end_time),
-                itertools.repeat(s3_root_path),
-                itertools.repeat(business_date_hour),
-            ))
+            all_collections = list(
+                executor.map(
+                    process_collection,
+                    collections,
+                    itertools.repeat(spark),
+                    itertools.repeat(start_time),
+                    itertools.repeat(end_time),
+                    itertools.repeat(s3_root_path),
+                    itertools.repeat(business_date_hour),
+                )
+            )
     except Exception as e:
         _logger.error(e)
         raise e
