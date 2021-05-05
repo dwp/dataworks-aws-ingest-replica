@@ -258,7 +258,7 @@ resource "aws_iam_role_policy_attachment" "emr_for_ec2_attachment" {
 
 resource "aws_iam_role_policy_attachment" "ec2_for_ssm_attachment" {
   role       = aws_iam_role.emr_hbase_replica.name
-  policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonSSMManagedInstanceCore"
+  policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
 }
 
 #        Create and attach custom policies
