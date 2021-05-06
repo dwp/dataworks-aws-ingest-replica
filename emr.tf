@@ -661,27 +661,6 @@ resource "aws_security_group_rule" "egress_to_vpce" {
   source_security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.interface_vpce_sg_id
 }
 
-//resource "aws_security_group_rule" "ingress_adg" {
-//  //todo: move to internal-compute vpc module
-//  description              = "Allow mysql traffic to Aurora RDS from ADG"
-//  from_port                = 3306
-//  protocol                 = "tcp"
-//  security_group_id        = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.interface_vpce_sg_id
-//  to_port                  = 3306
-//  type                     = "ingress"
-//  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
-//}
-//
-//resource "aws_security_group_rule" "egress_adg" {
-//  //todo: move to internal-compute vpc module
-//  description              = "Allow mysql traffic to Aurora RDS from ADG"
-//  from_port                = 3306
-//  protocol                 = "tcp"
-//  security_group_id        = data.terraform_remote_state.adg.outputs.adg_common_sg.id
-//  to_port                  = 3306
-//  type                     = "egress"
-//  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
-//}
 
 resource "aws_security_group_rule" "replica_emr_hbase_egress_dks" {
   description = "Allow outbound requests to DKS from EMR HBase"
