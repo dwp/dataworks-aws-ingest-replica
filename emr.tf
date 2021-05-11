@@ -955,5 +955,5 @@ resource "aws_route53_record" "hbase_replica" {
 }
 
 output "replica_emr_hbase_common" {
-  value = aws_security_group.replica_emr_hbase_common.id
+  value = aws_security_group.replica_emr_hbase_common
 }
