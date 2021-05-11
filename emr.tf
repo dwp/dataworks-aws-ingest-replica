@@ -179,7 +179,7 @@ resource "aws_emr_cluster" "hbase_read_replica" {
 {
       "Classification": "hive-site",
       "Properties": {
-          "hive.metastore.warehouse.dir": "s3://${data.terraform_remote_state.common.outputs.published_bucket.id}/analytical-dataset/hive/incremental",
+          "hive.metastore.warehouse.dir": "s3://${data.terraform_remote_state.common.outputs.published_bucket.id}/analytical-dataset/hive/dw-enhancement",
           "hive.txn.manager": "org.apache.hadoop.hive.ql.lockmgr.DbTxnManager",
           "hive.enforce.bucketing": "true",
           "hive.exec.dynamic.partition.mode": "nostrict",
@@ -189,7 +189,7 @@ resource "aws_emr_cluster" "hbase_read_replica" {
           "javax.jdo.option.ConnectionURL": "jdbc:mysql://${data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.endpoint}:3306/${data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.database_name}?createDatabaseIfNotExist=true",
           "javax.jdo.option.ConnectionDriverName": "org.mariadb.jdbc.Driver",
           "javax.jdo.option.ConnectionUserName": "${data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.username}",
-          "javax.jdo.option.ConnectionPassword": "${data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.secret_name}",
+          "javax.jdo.option.ConnectionPassword": "${jsondecode(data.aws_secretsmanager_secret_version.passwd.secret_string)["password"]}",
           "hive.metastore.client.socket.timeout": "7200"
       }
 },
@@ -202,10 +202,10 @@ resource "aws_emr_cluster" "hbase_read_replica" {
           "hive.compactor.initiator.on": "true",
           "hive.compactor.worker.threads": "1",
           "hive.support.concurrency": "true",
-          "javax.jdo.option.ConnectionURL": "jdbc:mysql://${data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.endpoint}:3306/${data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.database_name}?createDatabaseIfNotExist=true",
+          "javax.jdo.option.ConnectionURL": "jdbc:mysql://${data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.endpoint}:3306/${data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.database_name}",
           "javax.jdo.option.ConnectionDriverName": "org.mariadb.jdbc.Driver",
           "javax.jdo.option.ConnectionUserName": "${data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.username}",
-          "javax.jdo.option.ConnectionPassword": "${data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.secret_name}",
+          "javax.jdo.option.ConnectionPassword": "${jsondecode(data.aws_secretsmanager_secret_version.passwd.secret_string)["password"]}",
           "hive.metastore.client.socket.timeout": "7200"
       }
 }

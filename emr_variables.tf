@@ -940,6 +940,16 @@ variable "hbase_assignment_usezk" {
   }
 }
 
+data "aws_secretsmanager_secret" "secret_name" {
+
+  arn = data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.secret_arn
+
+}
+data "aws_secretsmanager_secret_version" "passwd" {
+
+  secret_id = data.aws_secretsmanager_secret.secret_name.id
+
+}
 
 
 

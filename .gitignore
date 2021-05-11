@@ -7,3 +7,5 @@
 
 terraform.tf
 aviator_pipeline.yml
+terraform.auto.tfvars
+terraform.auto.tfvars
