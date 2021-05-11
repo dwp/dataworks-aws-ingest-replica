@@ -940,6 +940,9 @@ variable "hbase_assignment_usezk" {
   }
 }
 
+
+
+
 //output "hbase_replica" {
 //  value = aws_emr_cluster.hbase_read_replica
 //}
