@@ -38,4 +38,6 @@ resources:
         owner-id: ((dataworks.aws_management_acc))
         is-public: false
         state: available
-        name: dw-al2-emr-ami-1600359680
+        name: dw-al2-emr-ami-*
+        image-id: ami-038114aceaec5c3de
+
