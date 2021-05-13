@@ -39,3 +39,4 @@ resources:
         is-public: false
         state: available
         name: dw-al2-emr-ami-*
+        image-id: ami-06d464a1b9a50802c
