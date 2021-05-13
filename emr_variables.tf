@@ -940,19 +940,6 @@ variable "hbase_assignment_usezk" {
   }
 }
 
-data "aws_secretsmanager_secret" "secret_name" {
-
-  name = data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.secret_name
-
-}
-data "aws_secretsmanager_secret_version" "passwd" {
-
-  secret_id = data.aws_secretsmanager_secret.secret_name.id
-
-}
-
-
-
 //output "hbase_replica" {
 //  value = aws_emr_cluster.hbase_read_replica
 //}
