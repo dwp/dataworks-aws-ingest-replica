@@ -2,10 +2,10 @@ import json
 import unittest
 from unittest import mock
 
-from spark_job import decrypt_ciphertext
-from spark_job import decrypt_message
-from spark_job import encrypt_plaintext
-from spark_job import filter_rows, list_to_csv_str, process_record
+from files.steps.generate_dataset_from_hbase import decrypt_ciphertext
+from files.steps.generate_dataset_from_hbase import decrypt_message
+from files.steps.generate_dataset_from_hbase import encrypt_plaintext
+from files.steps.generate_dataset_from_hbase import filter_rows, list_to_csv_str, process_record
 
 test_plaintext = "12b1a332-5b46-4ad7-bd98-6f8deea3ecb7"
 test_ciphertext = "ZLDdPh9IXexOzCztXNtC/uFASJVFU+RhIzu7/x8DzUmenZlO"

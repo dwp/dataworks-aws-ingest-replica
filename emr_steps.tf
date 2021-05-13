@@ -1,7 +1,7 @@
-resource "aws_s3_bucket_object" "adg_incremental_spark_step" {
+resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
-  key    = "${local.replica_emr_step_scripts_s3_prefix}/spark_job.py"
-  content = templatefile("files/emr/spark_job.py",
+  key    = "${local.replica_emr_step_scripts_s3_prefix}/generate_dataset_from_hbase.py"
+  content = templatefile("files/steps/generate_dataset_from_hbase.py",
   {
     dks_decrypt_endpoint = data.terraform_remote_state.crypto.outputs.dks_endpoint[local.environment]
     log_path = "/var/log/adg_incremental_step.log"
@@ -13,7 +13,7 @@ resource "aws_s3_bucket_object" "adg_incremental_spark_step" {
   tags = merge(
   local.common_tags,
   {
-    Name = "adg-incremental-spark-step"
+    Name = "emr-step-generate-dataset-from-hbase"
   },
   )
 }
