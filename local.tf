@@ -1,9 +1,5 @@
 locals {
 
-  input_bucket_business_data_root = "business-data"
-  hbase_rootdir_prefix            = "${local.input_bucket_business_data_root}/${var.hbase_rootdir[local.environment]}"
-  hbase_rootdir                   = "${data.terraform_remote_state.ingest.outputs.s3_buckets["input_bucket"]}/${local.hbase_rootdir_prefix}"
-
   management_account = {
     development = "management-dev"
     qa          = "management-dev"
@@ -17,6 +13,12 @@ locals {
     management     = "management"
   }
 
+  emr_cluster_name = "ingest-replica-incremental"
+
+  input_bucket_business_data_root = "business-data"
+  hbase_rootdir_prefix            = "${local.input_bucket_business_data_root}/${var.hbase_rootdir[local.environment]}"
+  hbase_rootdir                   = "${data.terraform_remote_state.ingest.outputs.s3_buckets["input_bucket"]}/${local.hbase_rootdir_prefix}"
+
   emr_applications = {
     development = ["HBase", "Ganglia", "Hive", "Spark"]
     qa          = ["HBase", "Ganglia"]
@@ -25,8 +27,9 @@ locals {
     production  = ["HBase", "Ganglia"]
   }
 
-  replica_emr_bootstrap_scripts_s3_prefix = "component/hbase_read_replica/bootstrap_scripts"
-  replica_emr_step_scripts_s3_prefix      = "component/hbase_read_replica/step_scripts"
+  replica_emr_bootstrap_scripts_s3_prefix   = "component/hbase_read_replica/bootstrap_scripts"
+  replica_emr_step_scripts_s3_prefix        = "component/hbase_read_replica/step_scripts"
+  replica_emr_configuration_files_s3_prefix = "component/hbase_read_replica/cluster_config"
 
 
   ingest_hbase_truststore_certs = {
@@ -59,5 +62,13 @@ locals {
     integration = ".int"
     preprod     = ".pre"
     production  = ""
+  }
+
+  keep_cluster_alive = {
+    development = false
+    qa          = false
+    integration = false
+    preprod     = false
+    production  = false
   }
 }
