@@ -33,6 +33,7 @@ resource "aws_s3_bucket_object" "cluster_yaml" {
       s3_log_bucket    = data.terraform_remote_state.security-tools.outputs.logstore_bucket["id"]
       s3_log_prefix    = aws_s3_bucket_object.emr_logs_folder.id
       emr_cluster_name = local.emr_cluster_name
+      security_configuration = aws_emr_security_configuration.ingest_read_replica.id
 
       scale_down_behaviour = "TERMINATE_AT_TASK_COMPLETION"
       service_role         = aws_iam_role.emr_service.arn
