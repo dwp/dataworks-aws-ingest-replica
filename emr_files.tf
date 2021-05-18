@@ -1,6 +1,6 @@
 resource "aws_s3_bucket_object" "configurations_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
-  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/configurations.yaml"
+  key    = "${local.replica_emr_configuration_files_s3_prefix}/configurations.yaml"
   content = templatefile("files/emr-config/configurations.yaml.tpl",
     {
       //    hbase-site
@@ -26,7 +26,7 @@ resource "aws_s3_bucket_object" "configurations_yaml" {
 
 resource "aws_s3_bucket_object" "cluster_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
-  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/cluster.yaml"
+  key    = "${local.replica_emr_configuration_files_s3_prefix}/cluster.yaml"
   content = templatefile("files/emr-config/cluster.yaml.tpl",
     {
       ami_id                 = var.emr_al2_ami_id
@@ -48,7 +48,7 @@ resource "aws_s3_bucket_object" "cluster_yaml" {
 
 resource "aws_s3_bucket_object" "instances_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
-  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/instances.yaml"
+  key    = "${local.replica_emr_configuration_files_s3_prefix}/instances.yaml"
   content = templatefile("files/emr-config/instances.yaml.tpl",
     {
       keep_cluster_alive = local.keep_cluster_alive[local.environment]
@@ -73,12 +73,12 @@ resource "aws_s3_bucket_object" "instances_yaml" {
 
   tags = merge(
     local.common_tags,
-  { name = "instance.yaml" })
+  { name = "instances.yaml" })
 }
 
 resource "aws_s3_bucket_object" "steps_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
-  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/steps.yaml"
+  key    = "${local.replica_emr_configuration_files_s3_prefix}/steps.yaml"
   content = templatefile("files/emr-config/steps.yaml.tpl",
     {
       s3_config_bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
