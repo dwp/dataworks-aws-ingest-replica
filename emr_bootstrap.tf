@@ -95,4 +95,3 @@ resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
   )
 }
 
-// todo : cloudwatch setup, download files script

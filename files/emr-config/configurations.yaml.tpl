@@ -21,3 +21,4 @@ Configurations:
     "fs.s3.multipart.th.fraction.parts.completed": "${hbase_fs_multipart_th_fraction_parts_completed}"
     "fs.s3.maxConnections": "${hbase_s3_maxconnections}"
     "fs.s3.maxRetries": "${hbase_s3_max_retry_count}"
+

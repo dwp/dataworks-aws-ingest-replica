@@ -13,7 +13,6 @@ BootstrapActions:
   ScriptBootstrapAction:
     Path: "s3://${s3_config_bucket}/${installer_sh_key}"
 Steps:
-  # todo: add steps
 - Name: "submit-job"
   HadoopJarStep:
     Args:
