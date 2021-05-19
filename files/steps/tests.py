@@ -2,10 +2,10 @@ import json
 import unittest
 from unittest import mock
 
-from files.steps.generate_dataset_from_hbase import decrypt_ciphertext
-from files.steps.generate_dataset_from_hbase import decrypt_message
-from files.steps.generate_dataset_from_hbase import encrypt_plaintext
-from files.steps.generate_dataset_from_hbase import filter_rows, list_to_csv_str, process_record
+from generate_dataset_from_hbase import decrypt_ciphertext
+from generate_dataset_from_hbase import decrypt_message
+from generate_dataset_from_hbase import encrypt_plaintext
+from generate_dataset_from_hbase import filter_rows, list_to_csv_str, process_record
 
 test_plaintext = "12b1a332-5b46-4ad7-bd98-6f8deea3ecb7"
 test_ciphertext = "ZLDdPh9IXexOzCztXNtC/uFASJVFU+RhIzu7/x8DzUmenZlO"
@@ -52,8 +52,8 @@ class TestCrypto(unittest.TestCase):
 
         self.assertEqual(test_plaintext, output_plaintext)
 
-    @mock.patch("spark_job.get_plaintext_key", mock_get_plaintext_key)
-    @mock.patch("spark_job.decrypt_ciphertext", mock_decrypt_ciphertext)
+    @mock.patch("generate_dataset_from_hbase.get_plaintext_key", mock_get_plaintext_key)
+    @mock.patch("generate_dataset_from_hbase.decrypt_ciphertext", mock_decrypt_ciphertext)
     def test_decrypt_message(self):
         self.assertEqual(expected_message, decrypt_message(test_message))
 
@@ -85,7 +85,7 @@ class TestSparkFunctions(unittest.TestCase):
         for i in test_values:
             self.assertEqual(list_to_csv_str(i[0]), i[1])
 
-    @mock.patch("spark_job.decrypt_message", lambda x: x)
+    @mock.patch("generate_dataset_from_hbase.decrypt_message", lambda x: x)
     def test_process_record(self):
         input_record = (
             "<id> column=<column>,  timestamp=<timestamp>, value=<recordvalue>"
