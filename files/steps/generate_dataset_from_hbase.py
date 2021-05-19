@@ -29,6 +29,7 @@ DKS_DECRYPT_ENDPOINT = DKS_ENDPOINT + "/datakey/actions/decrypt/"
 
 INCREMENTAL_OUTPUT_BUCKET = "${incremental_output_bucket}"
 INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
+cache = []
 
 LOG_PATH = "${log_path}"
 
@@ -125,7 +126,7 @@ def get_plaintext_key(url, kek, cek):
     request = retry_requests(methods=["POST"])
 
     response = request.post(
-        url,
+        DKS_DECRYPT_ENDPOINT,
         params={"keyId": kek, "correlationId": 0},
         data=cek,
         cert=(
@@ -147,7 +148,16 @@ def decrypt_ciphertext(ciphertext, key, iv):
     return aes.decrypt(base64.b64decode(ciphertext)).decode("utf8")
 
 
+def get_key_from_cache(kek):
+    for i in cache:
+        if i["keyId"] == kek:
+            return i["keyText"]
+            break
+
+
 def decrypt_message(item):
+    plaintext_key = None
+
     """Find and decrypt dbObject, Return full message."""
     json_item = json.loads(item)
     iv = json_item["message"]["encryption"]["initialisationVector"]
@@ -155,11 +165,15 @@ def decrypt_message(item):
     kek = json_item["message"]["encryption"]["keyEncryptionKeyId"]
     db_obj = json_item["message"]["dbObject"]
 
-    plaintext_key = get_plaintext_key(
-        DKS_DECRYPT_ENDPOINT,
-        kek,
-        cek,
-    )
+    plaintext_key = get_key_from_cache(kek)
+
+    if not plaintext_key:
+        plaintext_key = get_plaintext_key(
+                kek,
+                cek,
+        )
+        cache.append({"keyId": kek, "keyText": plaintext_key})
+
     decrypted_obj = decrypt_ciphertext(db_obj, plaintext_key, iv)
     json_item["message"]["dbObject"] = json.loads(decrypted_obj)
     del json_item["message"]["encryption"]
