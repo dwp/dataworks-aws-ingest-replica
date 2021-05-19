@@ -5,6 +5,7 @@ jobs:
       - get: al2-emr-ami
       - get: dataworks-aws-ingest-replica
         trigger: true
+      - .: (( inject meta.plan.unit-tests ))
       - .: (( inject meta.plan.terraform-bootstrap ))
       - .: (( inject meta.plan.terraform-apply ))
       - .: (( inject meta.plan.terraform-plan ))
