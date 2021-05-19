@@ -940,6 +940,11 @@ variable "hbase_assignment_usezk" {
   }
 }
 
+variable "test_variable" {
+  type = string
+  default = "some string"
+}
+
 //output "hbase_replica" {
 //  value = aws_emr_cluster.hbase_read_replica
 //}
