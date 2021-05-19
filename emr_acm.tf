@@ -9,6 +9,8 @@ resource "aws_acm_certificate" "emr_replica_hbase" {
   )
 }
 
+variable "new_variable" {}
+
 // todo: test if this is necessary given statement in data.aws_iam_policy_document.hbase_replica_main
 //data "aws_iam_policy_document" "emr_replica_hbase_acm" {
 //  statement {
