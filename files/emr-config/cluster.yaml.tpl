@@ -1,9 +1,7 @@
 ---
 Applications:
-- Name: "Spark"
-- Name: "Hive"
-- Name: "HBase"
-- Name: "Ganglia"
+%{ for application in  spark_applications }- Name: "${application}"
+%{ endfor }
 CustomAmiId: "${ami_id}"
 EbsRootVolumeSize: 40
 LogUri: "s3://${s3_log_bucket}/${s3_log_prefix}"

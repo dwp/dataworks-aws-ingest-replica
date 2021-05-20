@@ -124,7 +124,7 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
 def get_key_from_cache(kek):
     if kek in cache:
         return cache[kek]
-    else
+    else:
         return None
 
 def get_plaintext_key(url, kek, cek):
@@ -136,7 +136,7 @@ def get_plaintext_key(url, kek, cek):
 
 
 def get_key_from_dks(url, kek, cek):
-"""Call DKS to return decrypted datakey."""
+    """Call DKS to return decrypted datakey."""
     request = retry_requests(methods=["POST"])
 
     response = request.post(
@@ -151,7 +151,7 @@ def get_key_from_dks(url, kek, cek):
     )
     content = response.json()
     plaintext_key = content["plaintextDataKey"]
-    cache[f"{kek}"] = plaintext_key
+    cache[kek] = plaintext_key
     return plaintext_key
 
 

@@ -1,12 +1,12 @@
 import json
 import unittest
 from unittest import mock
+from unittest.mock import MagicMock
 
-from files.steps.generate_dataset_from_hbase import decrypt_ciphertext
-from files.steps.generate_dataset_from_hbase import decrypt_message
-from files.steps.generate_dataset_from_hbase import encrypt_plaintext
-from files.steps.generate_dataset_from_hbase import filter_rows, list_to_csv_str, process_record
-from files.steps.generate_dataset_from_hbase import get_key_from_cache, get_plaintext_key, get_key_from_dks
+from generate_dataset_from_hbase import decrypt_ciphertext
+from generate_dataset_from_hbase import decrypt_message
+from generate_dataset_from_hbase import encrypt_plaintext
+from generate_dataset_from_hbase import filter_rows, list_to_csv_str, process_record, get_plaintext_key
 
 test_plaintext = "12b1a332-5b46-4ad7-bd98-6f8deea3ecb7"
 test_ciphertext = "ZLDdPh9IXexOzCztXNtC/uFASJVFU+RhIzu7/x8DzUmenZlO"
@@ -53,8 +53,8 @@ class TestCrypto(unittest.TestCase):
 
         self.assertEqual(test_plaintext, output_plaintext)
 
-    @mock.patch("spark_job.get_plaintext_key", mock_get_plaintext_key)
-    @mock.patch("spark_job.decrypt_ciphertext", mock_decrypt_ciphertext)
+    @mock.patch("generate_dataset_from_hbase.get_plaintext_key", mock_get_plaintext_key)
+    @mock.patch("generate_dataset_from_hbase.decrypt_ciphertext", mock_decrypt_ciphertext)
     def test_decrypt_message(self):
         self.assertEqual(expected_message, decrypt_message(test_message))
 
@@ -86,7 +86,7 @@ class TestSparkFunctions(unittest.TestCase):
         for i in test_values:
             self.assertEqual(list_to_csv_str(i[0]), i[1])
 
-    @mock.patch("spark_job.decrypt_message", lambda x: x)
+    @mock.patch("generate_dataset_from_hbase.decrypt_message", lambda x: x)
     def test_process_record(self):
         input_record = (
             "<id> column=<column>,  timestamp=<timestamp>, value=<recordvalue>"
@@ -99,21 +99,22 @@ class TestSparkFunctions(unittest.TestCase):
         self.assertEqual(output[2], "<recordvalue>")
 
 
-def mock_get_key_from_dks(url, kek, cek):
-    return kek
+def mock_get_key_from_dks(url, kek, cek, **kwargs):
+    return "plaintesxtKey"
 
 class TestDksCache(unittest.TestCase):
 
 
-    @mock.patch("spark_job.get_key_from_dks", mock_get_key_from_dks)
-    def test_dks_cache(self):
+    @mock.patch("generate_dataset_from_hbase.get_key_from_dks", side_effect=mock_get_key_from_dks)
+    def test_dks_cache(self, post_mock):
         testKeyId = "abcd"
         keyText   = "plaintesxtKey"
         url = "https://dummy"
         for i in range(1, 5):
             get_plaintext_key("https://dummy", "abcd", "plaintesxtKey")
 
-        self.assertEqual( mock_get_key_from_dks.call_count, 1)
+        self.assertEqual(post_mock.call_count, 1)
+
 
 
 
