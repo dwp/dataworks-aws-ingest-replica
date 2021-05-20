@@ -38,6 +38,7 @@ resource "aws_s3_bucket_object" "cluster_yaml" {
       scale_down_behaviour = "TERMINATE_AT_TASK_COMPLETION"
       service_role         = aws_iam_role.emr_service.arn
       instance_profile     = aws_iam_instance_profile.emr_hbase_replica.id
+      spark_applications  = local.emr_applications[local.environment]
   })
 
   tags = merge(
