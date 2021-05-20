@@ -100,7 +100,7 @@ class TestSparkFunctions(unittest.TestCase):
 
 
 def mock_get_key_from_dks(url, kek, cek, **kwargs):
-    return "plaintesxtKey"
+    return "kek"
 
 class TestDksCache(unittest.TestCase):
 
