@@ -129,9 +129,10 @@ def get_key_from_cache(kek):
 
 def get_plaintext_key(url, kek, cek):
     plaintext_key = get_key_from_cache(kek)
-
     if not plaintext_key:
-
+        plaintext_key =  get_key_from_dks(url, kek, cek)
+        cache[f"{kek}"] = plaintext_key
+    return plaintext_key
 
 
 def get_key_from_dks(url, kek, cek):
@@ -151,7 +152,7 @@ def get_key_from_dks(url, kek, cek):
     content = response.json()
     plaintext_key = content["plaintextDataKey"]
     cache[f"{kek}"] = plaintext_key
-return plaintext_key
+    return plaintext_key
 
 
 def decrypt_ciphertext(ciphertext, key, iv):
