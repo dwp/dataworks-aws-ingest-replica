@@ -103,8 +103,6 @@ def mock_get_key_from_dks(url, kek, cek, **kwargs):
     return "kek"
 
 class TestDksCache(unittest.TestCase):
-
-
     @mock.patch("generate_dataset_from_hbase.get_key_from_dks", side_effect=mock_get_key_from_dks)
     def test_dks_cache(self, post_mock):
         testKeyId = "abcd"

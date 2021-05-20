@@ -33,7 +33,6 @@ INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 LOG_PATH = "${log_path}"
 cache = {}
 
-
 def setup_logging(log_level, log_path):
     logger = logging.getLogger()
     for old_handler in logger.handlers:
@@ -119,7 +118,6 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
     ciphertext = base64.b64encode(ciphertext)
 
     return ciphertext.decode("ascii"), iv.decode("ascii")
-
 
 
 def get_plaintext_key(url, kek, cek):
