@@ -121,17 +121,12 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
     return ciphertext.decode("ascii"), iv.decode("ascii")
 
 
-def get_key_from_cache(kek):
-    if kek in cache:
-        return cache[kek]
-    else:
-        return None
 
 def get_plaintext_key(url, kek, cek):
-    plaintext_key = get_key_from_cache(kek)
+    plaintext_key = cache.get(kek)
     if not plaintext_key:
         plaintext_key =  get_key_from_dks(url, kek, cek)
-        cache[f"{kek}"] = plaintext_key
+        cache[kek] = plaintext_key
     return plaintext_key
 
 
