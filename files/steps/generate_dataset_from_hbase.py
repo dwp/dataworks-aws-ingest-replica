@@ -31,7 +31,6 @@ INCREMENTAL_OUTPUT_BUCKET = "${incremental_output_bucket}"
 INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 
 LOG_PATH = "${log_path}"
-cache = {}
 
 
 def setup_logging(log_level, log_path):
@@ -121,32 +120,22 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
     return ciphertext.decode("ascii"), iv.decode("ascii")
 
 
-def get_key_from_cache(kek):
-    if kek in cache:
-        return cache[kek]
-
 def get_plaintext_key(url, kek, cek):
-    plaintext_key = None
-
     """Call DKS to return decrypted datakey."""
     request = retry_requests(methods=["POST"])
 
-    plaintext_key = get_key_from_cache(kek)
-
-    if not plaintext_key:
-        response = request.post(
-            DKS_DECRYPT_ENDPOINT,
-            params={"keyId": kek, "correlationId": 0},
-            data=cek,
-            cert=(
-                "/etc/pki/tls/certs/private_key.crt",
-                "/etc/pki/tls/private/private_key.key",
-            ),
-            verify="/etc/pki/ca-trust/source/anchors/analytical_ca.pem",
-        )
-        content = response.json()
-        plaintext_key = content["plaintextDataKey"]
-        cache[f"{kek}"] = plaintext_key
+    response = request.post(
+        url,
+        params={"keyId": kek, "correlationId": 0},
+        data=cek,
+        cert=(
+            "/etc/pki/tls/certs/private_key.crt",
+            "/etc/pki/tls/private/private_key.key",
+        ),
+        verify="/etc/pki/ca-trust/source/anchors/analytical_ca.pem",
+    )
+    content = response.json()
+    plaintext_key = content["plaintextDataKey"]
     return plaintext_key
 
 
