@@ -93,7 +93,6 @@ def retry_requests(retries=10, backoff=1, methods=None):
     adapter = HTTPAdapter(max_retries=retry_strategy)
     requests_session = requests.Session()
     requests_session.mount("https://", adapter)
-    requests_session.mount("http://", adapter)
     return requests_session
 
 
@@ -246,7 +245,6 @@ def create_hive_table(collection_tuple):
                     from {table_name})
                     select id, record_timestamp, record from ranked where RANK = 1
                     """
-    _logger.warning(create_view)
     spark.sql(drop_view)
     spark.sql(create_view)
 
