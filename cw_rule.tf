@@ -55,6 +55,7 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
     "Version": "2012-10-17",
     "Statement": [
       {
+        "Sid": "LogGroup"
         "Effect": "Allow",
         "Action": [
           "logs:CreateLogGroup",
@@ -62,6 +63,15 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
           "logs:PutLogEvents"
         ],
         "Resource": "*"
+      },
+      {
+        "Sid": "SNSTopic"
+        "Effect": "Allow",
+        "Action": [
+          "SNS:Receive",
+          "SNS:Publish"
+          ]
+        "Resource": "${aws_sns_topic.hbase_incremental_refresh_sns.arn}"
       }
     ]
   })
