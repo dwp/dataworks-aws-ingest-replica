@@ -1,11 +1,12 @@
 import json
 import unittest
 from unittest import mock
+from unittest.mock import MagicMock
 
 from generate_dataset_from_hbase import decrypt_ciphertext
 from generate_dataset_from_hbase import decrypt_message
 from generate_dataset_from_hbase import encrypt_plaintext
-from generate_dataset_from_hbase import filter_rows, list_to_csv_str, process_record
+from generate_dataset_from_hbase import filter_rows, list_to_csv_str, process_record, get_plaintext_key
 
 test_plaintext = "12b1a332-5b46-4ad7-bd98-6f8deea3ecb7"
 test_ciphertext = "ZLDdPh9IXexOzCztXNtC/uFASJVFU+RhIzu7/x8DzUmenZlO"
@@ -96,6 +97,24 @@ class TestSparkFunctions(unittest.TestCase):
         self.assertEqual(output[0], "<id>")
         self.assertEqual(output[1], "<timestamp>")
         self.assertEqual(output[2], "<recordvalue>")
+
+
+def mock_get_key_from_dks(url, kek, cek, **kwargs):
+    return "kek"
+
+class TestDksCache(unittest.TestCase):
+    @mock.patch("generate_dataset_from_hbase.get_key_from_dks", side_effect=mock_get_key_from_dks)
+    def test_dks_cache(self, post_mock):
+        testKeyId = "abcd"
+        keyText   = "plaintesxtKey"
+        url = "https://dummy"
+        for i in range(1, 5):
+            get_plaintext_key("https://dummy", "abcd", "plaintesxtKey")
+
+        self.assertEqual(post_mock.call_count, 1)
+
+
+
 
 
 if __name__ == "__main__":

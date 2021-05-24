@@ -22,7 +22,6 @@ resource "aws_emr_security_configuration" "ingest_read_replica" {
       }
     }
   )
-
 }
 
 #

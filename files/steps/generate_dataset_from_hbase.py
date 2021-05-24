@@ -31,7 +31,7 @@ INCREMENTAL_OUTPUT_BUCKET = "${incremental_output_bucket}"
 INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 
 LOG_PATH = "${log_path}"
-
+cache = {}
 
 def setup_logging(log_level, log_path):
     logger = logging.getLogger()
@@ -121,6 +121,14 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
 
 
 def get_plaintext_key(url, kek, cek):
+    plaintext_key = cache.get(kek)
+    if not plaintext_key:
+        plaintext_key =  get_key_from_dks(url, kek, cek)
+        cache[kek] = plaintext_key
+    return plaintext_key
+
+
+def get_key_from_dks(url, kek, cek):
     """Call DKS to return decrypted datakey."""
     request = retry_requests(methods=["POST"])
 
@@ -136,6 +144,7 @@ def get_plaintext_key(url, kek, cek):
     )
     content = response.json()
     plaintext_key = content["plaintextDataKey"]
+    cache[kek] = plaintext_key
     return plaintext_key
 
 
