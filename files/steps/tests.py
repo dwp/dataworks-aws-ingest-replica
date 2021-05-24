@@ -116,11 +116,11 @@ class TestDksCache(unittest.TestCase):
         side_effect=mock_get_key_from_dks,
     )
     def test_dks_cache(self, post_mock):
-        keyId = "abcd"
-        keyText = "key_string"
+        key_id = "abcd"
+        key_text = "key_string"
         url = "https://dummy"
         for i in range(1, 5):
-            get_plaintext_key(url, keyId, keyText)
+            get_plaintext_key(url, key_id, key_text)
 
         self.assertEqual(post_mock.call_count, 1)
 
