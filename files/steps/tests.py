@@ -1,7 +1,6 @@
 import json
 import unittest
 from unittest import mock
-from itertools import repeat
 
 
 from generate_dataset_from_hbase import (
