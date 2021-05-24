@@ -119,7 +119,7 @@ class TestDksCache(unittest.TestCase):
         key_id = "abcd"
         key_text = "key_string"
         url = "https://dummy"
-        for i in range(1, 5):
+        for _ in range(1, 5):
             get_plaintext_key(url, key_id, key_text)
 
         self.assertEqual(post_mock.call_count, 1)
