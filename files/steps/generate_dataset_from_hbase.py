@@ -33,6 +33,7 @@ INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 LOG_PATH = "${log_path}"
 cache = {}
 
+
 def setup_logging(log_level, log_path):
     logger = logging.getLogger()
     for old_handler in logger.handlers:
@@ -123,7 +124,7 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
 def get_plaintext_key(url, kek, cek):
     plaintext_key = cache.get(kek)
     if not plaintext_key:
-        plaintext_key =  get_key_from_dks(url, kek, cek)
+        plaintext_key = get_key_from_dks(url, kek, cek)
         cache[kek] = plaintext_key
     return plaintext_key
 
