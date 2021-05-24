@@ -11,7 +11,7 @@ resource "aws_sns_topic_policy" "hbase_incremental_refresh_topic_policy" {
     "Id": "hbase_incremental_refresh_ID",
     "Statement": [
       {
-        "Sid": "statement_ID",
+        "Sid": "DisableCrossAccountAccess",
         "Effect": "Allow",
         "Principal": {
           "AWS": "*"
