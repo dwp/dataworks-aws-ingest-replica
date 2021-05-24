@@ -56,12 +56,6 @@ def setup_logging(log_level, log_path):
     return logger
 
 
-_logger = setup_logging(
-    log_level="INFO",
-    log_path=LOG_PATH,
-)
-
-
 def get_parameters():
     """Define and parse command line args."""
     parser = argparse.ArgumentParser(
@@ -287,6 +281,11 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
 
 
 if __name__ == "__main__":
+    _logger = setup_logging(
+        log_level="INFO",
+        log_path=LOG_PATH,
+    )
+
     args = get_parameters()
     start_time = args.start_time
     end_time = args.end_time
