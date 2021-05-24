@@ -124,6 +124,7 @@ def get_plaintext_key(url, kek, cek):
 
 def get_key_from_dks(url, kek, cek):
     """Call DKS to return decrypted datakey."""
+    global dks_count
     request = retry_requests(methods=["POST"])
 
     response = request.post(
@@ -139,6 +140,7 @@ def get_key_from_dks(url, kek, cek):
     content = response.json()
     plaintext_key = content["plaintextDataKey"]
     cache[kek] = plaintext_key
+    dks_count.add(1)
     return plaintext_key
 
 
@@ -177,10 +179,12 @@ def filter_rows(x):
 
 
 def process_record(x):
+    global record_count
     y = [str.strip(i) for i in re.split(r" *column=|, *timestamp=|, *value=", x)]
     record_id = y[0]
     timestamp = y[2]
     record = decrypt_message(y[3])
+    record_count.add(1)
     return [record_id, timestamp, record]
 
 
@@ -217,12 +221,11 @@ def process_collection(
     s3_collection_dir = s3_root_path + hive_table_name + "/"
     s3_output_dir = s3_collection_dir + business_date_hour + "/"
     rdd.saveAsTextFile(s3_output_dir)
-    num_records = rdd.count()
-    return hive_table_name, s3_collection_dir, num_records
+    return hive_table_name, s3_collection_dir
 
 
 def create_hive_table(collection_tuple):
-    table_name, s3_path, _ = collection_tuple
+    table_name, s3_path = collection_tuple
     drop_table = f"drop table if exists {table_name}"
     create_table = (
         f"create external table if not exists {table_name} "
@@ -269,13 +272,9 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
         _logger.error(e)
         raise e
 
-    total_records = sum([i[2] for i in all_collections])
-
     # create Hive tables
     with concurrent.futures.ThreadPoolExecutor() as executor:
         executor.map(create_hive_table, list(all_collections))
-
-    return total_records
 
 
 if __name__ == "__main__":
@@ -289,19 +288,21 @@ if __name__ == "__main__":
     end_time = args.end_time
     collections = list(args.collections)
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
+    # Set Accumulators
+    dks_count = spark.sparkContext.accumulator(0)
+    record_count = spark.sparkContext.accumulator(0)
 
     business_date_hour = datetime.datetime.fromtimestamp(end_time / 1000.0).strftime(
         "%Y%m%d-%H%M"
     )
     s3_root_path = f"s3://{INCREMENTAL_OUTPUT_BUCKET}/{INCREMENTAL_OUTPUT_PREFIX}"
     perf_start = time.perf_counter()
-    total_records = main(
-        spark, collections, start_time, end_time, s3_root_path, business_date_hour
-    )
+
+    main(spark, collections, start_time, end_time, s3_root_path, business_date_hour)
 
     perf_end = time.perf_counter()
     total_time = round(perf_end - perf_start)
     _logger.info(
-        f"time taken to process collections: {total_records} records"
-        + f" in {total_time}s"
+        f"time taken to process collections: {record_count.value} records"
+        + f" in {total_time}s.  {dks_count.value} calls to DKS"
     )
