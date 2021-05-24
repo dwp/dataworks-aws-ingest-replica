@@ -1,12 +1,17 @@
 import json
 import unittest
 from unittest import mock
-from unittest.mock import MagicMock
 
-from generate_dataset_from_hbase import decrypt_ciphertext
-from generate_dataset_from_hbase import decrypt_message
-from generate_dataset_from_hbase import encrypt_plaintext
-from generate_dataset_from_hbase import filter_rows, list_to_csv_str, process_record, get_plaintext_key
+
+from generate_dataset_from_hbase import (
+    filter_rows,
+    list_to_csv_str,
+    process_record,
+    get_plaintext_key,
+    decrypt_ciphertext,
+    decrypt_message,
+    encrypt_plaintext,
+)
 
 test_plaintext = "12b1a332-5b46-4ad7-bd98-6f8deea3ecb7"
 test_ciphertext = "ZLDdPh9IXexOzCztXNtC/uFASJVFU+RhIzu7/x8DzUmenZlO"
@@ -54,7 +59,9 @@ class TestCrypto(unittest.TestCase):
         self.assertEqual(test_plaintext, output_plaintext)
 
     @mock.patch("generate_dataset_from_hbase.get_plaintext_key", mock_get_plaintext_key)
-    @mock.patch("generate_dataset_from_hbase.decrypt_ciphertext", mock_decrypt_ciphertext)
+    @mock.patch(
+        "generate_dataset_from_hbase.decrypt_ciphertext", mock_decrypt_ciphertext
+    )
     def test_decrypt_message(self):
         self.assertEqual(expected_message, decrypt_message(test_message))
 
@@ -102,19 +109,20 @@ class TestSparkFunctions(unittest.TestCase):
 def mock_get_key_from_dks(url, kek, cek, **kwargs):
     return "kek"
 
+
 class TestDksCache(unittest.TestCase):
-    @mock.patch("generate_dataset_from_hbase.get_key_from_dks", side_effect=mock_get_key_from_dks)
+    @mock.patch(
+        "generate_dataset_from_hbase.get_key_from_dks",
+        side_effect=mock_get_key_from_dks,
+    )
     def test_dks_cache(self, post_mock):
-        testKeyId = "abcd"
-        keyText   = "plaintesxtKey"
+        key_id = "abcd"
+        key_text = "key_string"
         url = "https://dummy"
         for i in range(1, 5):
-            get_plaintext_key("https://dummy", "abcd", "plaintesxtKey")
+            get_plaintext_key(url, key_id, key_text)
 
         self.assertEqual(post_mock.call_count, 1)
-
-
-
 
 
 if __name__ == "__main__":

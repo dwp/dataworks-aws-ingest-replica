@@ -33,6 +33,7 @@ INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 LOG_PATH = "${log_path}"
 cache = {}
 
+
 def setup_logging(log_level, log_path):
     logger = logging.getLogger()
     for old_handler in logger.handlers:
@@ -53,12 +54,6 @@ def setup_logging(log_level, log_path):
     logger.setLevel(new_level)
 
     return logger
-
-
-_logger = setup_logging(
-    log_level="INFO",
-    log_path=LOG_PATH,
-)
 
 
 def get_parameters():
@@ -123,7 +118,7 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
 def get_plaintext_key(url, kek, cek):
     plaintext_key = cache.get(kek)
     if not plaintext_key:
-        plaintext_key =  get_key_from_dks(url, kek, cek)
+        plaintext_key = get_key_from_dks(url, kek, cek)
         cache[kek] = plaintext_key
     return plaintext_key
 
@@ -286,6 +281,11 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
 
 
 if __name__ == "__main__":
+    _logger = setup_logging(
+        log_level="INFO",
+        log_path=LOG_PATH,
+    )
+
     args = get_parameters()
     start_time = args.start_time
     end_time = args.end_time
