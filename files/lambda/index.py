@@ -10,4 +10,3 @@ def main():
 
 def handler(event, context):
     main()
-    
