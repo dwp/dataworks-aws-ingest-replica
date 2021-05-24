@@ -16,11 +16,11 @@ resource "aws_s3_bucket_object" "configurations_yaml" {
       hbase_fs_multipart_th_fraction_parts_completed = var.hbase_fs_multipart_th_fraction_parts_completed[local.environment]
       hbase_s3_maxconnections                        = var.hbase_s3_maxconnections[local.environment]
       hbase_s3_max_retry_count                       = var.hbase_s3_max_retry_count[local.environment]
-      hive_metastore_username                       = data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.username
-      hive_metastore_pwd                            = data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.secret_name
-      hive_metastore_endpoint                       = data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.endpoint
-      hive_metastore_database_name                  = data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.database_name
-      s3_published_bucket                           = data.terraform_remote_state.common.outputs.published_bucket.id
+      hive_metastore_username                        = data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.username
+      hive_metastore_pwd                             = data.terraform_remote_state.internal_compute.outputs.metadata_store_users.hbase_read_replica_writer.secret_name
+      hive_metastore_endpoint                        = data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.endpoint
+      hive_metastore_database_name                   = data.terraform_remote_state.internal_compute.outputs.hive_metastore_v2.database_name
+      s3_published_bucket                            = data.terraform_remote_state.common.outputs.published_bucket.id
   })
 
   tags = merge(
@@ -43,7 +43,7 @@ resource "aws_s3_bucket_object" "cluster_yaml" {
       scale_down_behaviour = "TERMINATE_AT_TASK_COMPLETION"
       service_role         = aws_iam_role.emr_service.arn
       instance_profile     = aws_iam_instance_profile.emr_hbase_replica.id
-      spark_applications  = local.emr_applications[local.environment]
+      spark_applications   = local.emr_applications[local.environment]
   })
 
   tags = merge(
