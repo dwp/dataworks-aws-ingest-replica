@@ -93,8 +93,10 @@ class TestSparkFunctions(unittest.TestCase):
         for i in test_values:
             self.assertEqual(list_to_csv_str(i[0]), i[1])
 
+    @mock.patch("generate_dataset_from_hbase.record_count")
     @mock.patch("generate_dataset_from_hbase.decrypt_message", lambda x: x)
-    def test_process_record(self):
+    def test_process_record(self, mock_record_count):
+        mock_record_count.add = lambda x: None
         input_record = (
             "<id> column=<column>,  timestamp=<timestamp>, value=<recordvalue>"
         )

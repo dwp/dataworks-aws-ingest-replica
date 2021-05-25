@@ -33,6 +33,8 @@ INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 LOG_PATH = "${log_path}"
 cache = {}
 
+dks_count = None
+record_count = None
 
 def setup_logging(log_level, log_path):
     logger = logging.getLogger()
