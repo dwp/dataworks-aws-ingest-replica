@@ -60,28 +60,28 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
     "Version": "2012-10-17",
     "Statement": [
       {
-        "Sid": "LogGroup"
-        "Effect": "Allow",
-        "Action": [
+        Sid: "LogGroup"
+        Effect: "Allow",
+        Action: [
           "logs:CreateLogGroup",
           "logs:CreateLogStream",
           "logs:PutLogEvents"
         ],
-        "Resource": "*"
+        Resource: "*"
       },
       {
-        "Sid": "SNSTopic"
-        "Effect": "Allow",
-        "Action": [
+        Sid: "SNSTopic"
+        Effect: "Allow",
+        Action: [
           "SNS:Receive",
           "SNS:Publish"
           ]
-        "Resource": "${aws_sns_topic.hbase_incremental_refresh_sns.arn}"
+        Resource: aws_sns_topic.hbase_incremental_refresh_sns.arn
       },
       {
-        "Sid": "DynamoDBTableAccess",
-        "Effect": "Allow",
-        "Action": [
+        Sid: "DynamoDBTableAccess",
+        Effect: "Allow",
+        Action: [
           "dynamodb:BatchGetItem",
           "dynamodb:BatchWriteItem",
           "dynamodb:ConditionCheckItem",
@@ -93,7 +93,7 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
           "dynamodb:Query",
           "dynamodb:UpdateItem"
         ],
-        "Resource": "${aws_dynamodb_table.hbase_incremental_refresh_dynamodb.arn}"
+        Resource: aws_dynamodb_table.hbase_incremental_refresh_dynamodb.arn
       }
     ]
   })
