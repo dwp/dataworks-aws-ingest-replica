@@ -48,6 +48,7 @@ meta:
             - |
               export TF_VAR_emr_al2_ami_id=$(cat ../al2-emr-ami/id)
               cp ../terraform-bootstrap/terraform.tf .
+              export TF_VAR_emr_launcher_zip="{base_path = \"../emr-launcher-release\", version = \"$(cat ../emr-launcher-release/version)\"}"
               terraform workspace show
               terraform init
               terraform plan -out terraform.plan
@@ -68,6 +69,7 @@ meta:
             - |
               export TF_VAR_emr_al2_ami_id=$(cat ../al2-emr-ami/id)
               cp ../terraform-bootstrap/terraform.tf .
+              export TF_VAR_emr_launcher_zip="{base_path = \"../emr-launcher-release\", version = \"$(cat ../emr-launcher-release/version)\"}"
               terraform workspace show
               terraform init
               terraform plan $DETAILED_EXITCODE
