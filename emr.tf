@@ -10,7 +10,7 @@ resource "aws_emr_security_configuration" "ingest_read_replica" {
         AtRestEncryptionConfiguration : {
           S3EncryptionConfiguration = {
             EncryptionMode             = "CSE-Custom"
-            S3Object                   = "s3://${data.terraform_remote_state.management_artefact.outputs.artefact_bucket.id}/emr-encryption-materials-provider/encryption-materials-provider-all.jar"
+            S3Object                   = "s3://${data.terraform_remote_state.management_artefact.outputs.artefact_bucket["id"]}/emr-encryption-materials-provider/encryption-materials-provider-all.jar"
             EncryptionKeyProviderClass = "uk.gov.dwp.dataworks.dks.encryptionmaterialsprovider.DKSEncryptionMaterialsProvider"
           }
           LocalDiskEncryptionConfiguration : {
@@ -73,7 +73,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
 
     resources = [
-      data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn.input_bucket,
+      data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn["input_bucket"],
     ]
   }
 
@@ -89,7 +89,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
 
     resources = [
       # This must track the hbase root dir
-      "${data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn.input_bucket}/${local.hbase_rootdir_prefix}/*",
+      "${data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn["input_bucket"]}/${local.hbase_rootdir_prefix}/*",
     ]
   }
 
@@ -102,7 +102,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
 
     resources = [
-      data.terraform_remote_state.common.outputs.config_bucket.arn
+      data.terraform_remote_state.common.outputs.config_bucket["arn"]
     ]
   }
 
@@ -115,7 +115,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
 
     resources = [
-      "${data.terraform_remote_state.common.outputs.config_bucket.arn}/component/ingest_emr/*"
+      "${data.terraform_remote_state.common.outputs.config_bucket["arn"]}/component/ingest_emr/*"
     ]
   }
 
@@ -127,7 +127,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
       "kms:DescribeKey",
     ]
     resources = [
-      data.terraform_remote_state.common.outputs.config_bucket_cmk.arn
+      data.terraform_remote_state.common.outputs.config_bucket_cmk["arn"]
     ]
   }
 
@@ -141,7 +141,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
 
     resources = [
-      data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn.input_bucket,
+      data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn["input_bucket"],
     ]
   }
 
@@ -154,7 +154,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
 
     resources = [
-      "${data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn.input_bucket}/*",
+      "${data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn["input_bucket"]}/*",
     ]
   }
 
@@ -168,7 +168,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
 
     resources = [
-      data.terraform_remote_state.ingest.outputs.input_bucket_cmk.arn,
+      data.terraform_remote_state.ingest.outputs.input_bucket_cmk["arn"],
     ]
   }
 
@@ -186,7 +186,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
 
 
     resources = [
-      data.terraform_remote_state.ingest.outputs.input_bucket_cmk.arn,
+      data.terraform_remote_state.ingest.outputs.input_bucket_cmk["arn"],
     ]
   }
 
@@ -203,7 +203,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
 
 
-    resources = [data.terraform_remote_state.security-tools.outputs.ebs_cmk.arn]
+    resources = [data.terraform_remote_state.security-tools.outputs.ebs_cmk["arn"]]
   }
 
   statement {
@@ -211,14 +211,14 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     effect  = "Allow"
     actions = ["s3:GetBucketLocation"]
 
-    resources = [data.terraform_remote_state.management_artefact.outputs.artefact_bucket.arn]
+    resources = [data.terraform_remote_state.management_artefact.outputs.artefact_bucket["arn"]]
   }
 
   statement {
     sid       = "AllowPullFromArtefactBucket"
     effect    = "Allow"
     actions   = ["s3:GetObject"]
-    resources = ["${data.terraform_remote_state.management_artefact.outputs.artefact_bucket.arn}/*"]
+    resources = ["${data.terraform_remote_state.management_artefact.outputs.artefact_bucket["arn"]}/*"]
   }
 
   statement {
@@ -230,7 +230,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
       "kms:DescribeKey",
     ]
 
-    resources = [data.terraform_remote_state.management_artefact.outputs.artefact_bucket.cmk_arn]
+    resources = [data.terraform_remote_state.management_artefact.outputs.artefact_bucket["cmk_arn"]]
   }
 
   statement {
@@ -242,7 +242,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
     ]
 
     resources = [
-      data.terraform_remote_state.ingest.outputs.metadata_store_secrets.hbasewriter.arn
+      data.terraform_remote_state.ingest.outputs.metadata_store_secrets["hbasewriter"]["arn"]
     ]
   }
 
@@ -311,7 +311,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
       "s3:GetObject",
     ]
 
-    resources = [data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket.arn]
+    resources = [data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["arn"]]
   }
 }
 
@@ -393,7 +393,7 @@ data "aws_iam_policy_document" "emr_ebs_cmk" {
     ]
 
 
-    resources = [data.terraform_remote_state.security-tools.outputs.ebs_cmk.arn]
+    resources = [data.terraform_remote_state.security-tools.outputs.ebs_cmk["arn"]]
   }
 
   statement {
@@ -402,7 +402,7 @@ data "aws_iam_policy_document" "emr_ebs_cmk" {
     actions = ["kms:CreateGrant"]
 
 
-    resources = [data.terraform_remote_state.security-tools.outputs.ebs_cmk.arn]
+    resources = [data.terraform_remote_state.security-tools.outputs.ebs_cmk["arn"]]
 
     condition {
       test     = "Bool"
@@ -430,7 +430,7 @@ resource "aws_security_group" "replica_emr_hbase_common" {
   name                   = "replica_hbase_emr_common"
   description            = "Contains rules for both EMR cluster master nodes and EMR cluster slave nodes"
   revoke_rules_on_delete = true
-  vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.id
+  vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
   tags = merge(
     local.common_tags,
@@ -443,7 +443,7 @@ resource "aws_security_group" "replica_emr_hbase_common" {
 
 resource "aws_security_group_rule" "vpce_ingress" {
   //todo: move to internal-compute vpc module
-  security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.interface_vpce_sg_id
+  security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["interface_vpce_sg_id"]
 
   from_port                = 443
   to_port                  = 443
@@ -459,7 +459,7 @@ resource "aws_security_group_rule" "egress_to_vpce" {
   to_port                  = 443
   protocol                 = "tcp"
   type                     = "egress"
-  source_security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.interface_vpce_sg_id
+  source_security_group_id = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["interface_vpce_sg_id"]
 }
 
 
@@ -480,7 +480,7 @@ resource "aws_security_group_rule" "emr_hbase_egress_metadata_store" {
   from_port                = 3306
   to_port                  = 3306
   protocol                 = "tcp"
-  source_security_group_id = data.terraform_remote_state.ingest.outputs.metadata_store.rds.sg_id
+  source_security_group_id = data.terraform_remote_state.ingest.outputs.metadata_store["rds"]["sg_id"]
   security_group_id        = aws_security_group.replica_emr_hbase_common.id
 }
 
@@ -490,7 +490,7 @@ resource "aws_security_group_rule" "metadata_store_from_emr_hbase" {
   to_port                  = 3306
   protocol                 = "tcp"
   source_security_group_id = aws_security_group.replica_emr_hbase_common.id
-  security_group_id        = data.terraform_remote_state.ingest.outputs.metadata_store.rds.sg_id
+  security_group_id        = data.terraform_remote_state.ingest.outputs.metadata_store["rds"]["sg_id"]
   description              = "Metadata store from EMR HBase"
 }
 
@@ -501,7 +501,7 @@ resource "aws_security_group_rule" "emr_common_egress_s3_vpce_https" {
   to_port     = 443
   protocol    = "tcp"
 
-  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.s3]
+  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["prefix_list_ids"]["s3"]]
   security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 
@@ -512,7 +512,7 @@ resource "aws_security_group_rule" "emr_common_egress_s3_vpce_http" {
   to_port     = 80
   protocol    = "tcp"
 
-  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.s3]
+  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["prefix_list_ids"]["s3"]]
   security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 
@@ -523,7 +523,7 @@ resource "aws_security_group_rule" "emr_common_egress_dynamodb_vpce_https" {
   to_port     = 443
   protocol    = "tcp"
 
-  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc.vpc.prefix_list_ids.dynamodb]
+  prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["prefix_list_ids"]["dynamodb"]]
   security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
 
@@ -540,7 +540,7 @@ resource "aws_security_group_rule" "emr_common_egress_between_nodes" {
 resource "aws_security_group_rule" "egress_emr_common_to_internet" {
   description              = "Allow EMR access to Internet Proxy (for ACM-PCA)"
   type                     = "egress"
-  source_security_group_id = data.terraform_remote_state.internal_compute.outputs.internet_proxy.sg
+  source_security_group_id = data.terraform_remote_state.internal_compute.outputs.internet_proxy["sg"]
   //  source_security_group_id = aws_security_group.internet_proxy_endpoint.id
   protocol          = "tcp"
   from_port         = 3128
@@ -555,7 +555,7 @@ resource "aws_security_group_rule" "ingress_emr_common_to_internet" {
   protocol                 = "tcp"
   from_port                = 3128
   to_port                  = 3128
-  security_group_id        = data.terraform_remote_state.internal_compute.outputs.internet_proxy.sg
+  security_group_id        = data.terraform_remote_state.internal_compute.outputs.internet_proxy["sg"]
   //  security_group_id        = aws_security_group.internet_proxy_endpoint.id
 }
 
@@ -565,7 +565,7 @@ resource "aws_security_group" "emr_hbase_master" {
   name                   = "replica_hbase_emr_master"
   description            = "Contains rules for EMR cluster master nodes"
   revoke_rules_on_delete = true
-  vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.id
+  vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
   tags = merge(
     local.common_tags,
@@ -581,7 +581,7 @@ resource "aws_security_group" "replica_emr_hbase_slave" {
   name                   = "replica_hbase_emr_slave"
   description            = "Contains rules for EMR cluster slave nodes"
   revoke_rules_on_delete = true
-  vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.id
+  vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
   tags = merge(
     local.common_tags,
@@ -607,7 +607,7 @@ resource "aws_security_group" "emr_hbase_service" {
   name                   = "replica_hbase_emr_service"
   description            = "Contains rules automatically added by the EMR service itself. See https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-man-sec-groups.html#emr-sg-elasticmapreduce-sa-private"
   revoke_rules_on_delete = true
-  vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc.vpc.vpc.id
+  vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
   tags = merge(
     local.common_tags,
@@ -618,7 +618,7 @@ resource "aws_security_group" "emr_hbase_service" {
 }
 
 resource "aws_s3_bucket_object" "emr_logs_folder" {
-  bucket = data.terraform_remote_state.security-tools.outputs.logstore_bucket.id
+  bucket = data.terraform_remote_state.security-tools.outputs.logstore_bucket["id"]
   acl    = "private"
   key    = "emr/aws-read-replica/"
   source = "/dev/null"
