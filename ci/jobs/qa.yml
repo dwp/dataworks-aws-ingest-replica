@@ -9,6 +9,10 @@ jobs:
         trigger: true
         passed:
           - development
+      - get: emr-launcher-release
+        trigger: false
+        passed:
+          - development
       - .: (( inject meta.plan.unit-tests ))
       - .: (( inject meta.plan.terraform-bootstrap ))
       - .: (( inject meta.plan.terraform-apply ))

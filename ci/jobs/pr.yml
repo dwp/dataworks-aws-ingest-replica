@@ -1,15 +1,18 @@
 jobs:
   - name: dataworks-aws-ingest-replica-pr
     plan:
-      - get: dataworks-aws-ingest-replica-pr
-        trigger: true
-        version: every
-      - get: al2-emr-ami
+      - in_parallel:
+        - get: dataworks-aws-ingest-replica-pr
+          trigger: true
+          version: every
+        - get: al2-emr-ami
+        - get: emr-launcher-release
+          trigger: false
+
       - put: dataworks-aws-ingest-replica-pr
         params:
           path: dataworks-aws-ingest-replica-pr
           status: pending
-
       - .: (( inject meta.plan.unit-tests ))
         input_mapping:
           dataworks-aws-ingest-replica: dataworks-aws-ingest-replica-pr

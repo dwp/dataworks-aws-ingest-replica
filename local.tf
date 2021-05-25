@@ -27,9 +27,9 @@ locals {
     production  = ["HBase", "Ganglia"]
   }
 
-  replica_emr_bootstrap_scripts_s3_prefix   = "component/hbase_read_replica/bootstrap_scripts"
-  replica_emr_step_scripts_s3_prefix        = "component/hbase_read_replica/step_scripts"
-  replica_emr_configuration_files_s3_prefix = "component/hbase_read_replica/cluster_config"
+  replica_emr_bootstrap_scripts_s3_prefix   = "component/ingest_replica/bootstrap_scripts"
+  replica_emr_step_scripts_s3_prefix        = "component/ingest_replica/step_scripts"
+  replica_emr_configuration_files_s3_prefix = "emr/ingest_replica"
 
 
   ingest_hbase_truststore_certs = {
