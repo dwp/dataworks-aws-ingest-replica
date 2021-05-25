@@ -6,9 +6,9 @@ resource "aws_cloudwatch_event_rule" "hbase_incremental_rule" {
 }
 
 resource "aws_cloudwatch_event_target" "hbase_incremental_refresh_target" {
-  rule        = "${aws_cloudwatch_event_rule.hbase_incremental_rule.name}"
+  rule        = aws_cloudwatch_event_rule.hbase_incremental_rule.name
   target_id   = "hbase_incremental_refresh_target"
-  arn         = "${aws_lambda_function.hbase_incremental_refresh_lambda.arn}"
+  arn         = aws_lambda_function.hbase_incremental_refresh_lambda.arn
 }
 
 data "archive_file" "lambda_zip" {
@@ -19,12 +19,17 @@ data "archive_file" "lambda_zip" {
 
 resource "aws_lambda_function" "hbase_incremental_refresh_lambda" {
   filename            = "lambda.zip"
-  source_code_hash    = "${data.archive_file.lambda_zip.output_base64sha256}"
+  source_code_hash    = data.archive_file.lambda_zip.output_base64sha256
   function_name       = "hbase_incremental_refresh"
-  role                = "${aws_iam_role.hbase_incremental_refresh_lambda_role.arn}"
+  role                = aws_iam_role.hbase_incremental_refresh_lambda_role.arn
   description         = "Lambda function for incremental refresh"
   handler             = "index.handler"
   runtime             = "python3.8"
+  environment {
+    variables = {
+      TABLE_NAME = aws_dynamodb_table.hbase_incremental_refresh_dynamodb.name
+    }
+  }
   tags                = local.common_tags
 }
 
@@ -72,6 +77,23 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
           "SNS:Publish"
           ]
         "Resource": "${aws_sns_topic.hbase_incremental_refresh_sns.arn}"
+      },
+      {
+        "Sid": "DynamoDBTableAccess",
+        "Effect": "Allow",
+        "Action": [
+          "dynamodb:BatchGetItem",
+          "dynamodb:BatchWriteItem",
+          "dynamodb:ConditionCheckItem",
+          "dynamodb:PutItem",
+          "dynamodb:DescribeTable",
+          "dynamodb:DeleteItem",
+          "dynamodb:GetItem",
+          "dynamodb:Scan",
+          "dynamodb:Query",
+          "dynamodb:UpdateItem"
+        ],
+        "Resource": "${aws_dynamodb_table.hbase_incremental_refresh_dynamodb.arn}"
       }
     ]
   })
