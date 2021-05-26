@@ -26,5 +26,5 @@ resource "aws_dynamodb_table" "hbase_incremental_refresh_dynamodb" {
     projection_type = "ALL"
   }
 
-  tags = local.common_tags
+  tags = { Name = "hbase_incremental_refresh" }
 }

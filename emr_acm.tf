@@ -1,12 +1,7 @@
 resource "aws_acm_certificate" "emr_replica_hbase" {
   certificate_authority_arn = data.terraform_remote_state.certificate_authority.outputs.root_ca["arn"]
   domain_name               = "replica-hbase${local.dns_subdomain[local.environment]}.dataworks.dwp.gov.uk"
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "emr-replica-hbase"
-    },
-  )
+  tags                      = { Name = "ingest-replica" }
 }
 
 // todo: test if this is necessary given statement in data.aws_iam_policy_document.hbase_replica_main

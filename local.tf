@@ -1,4 +1,28 @@
 locals {
+  persistence_tag_value = {
+    development = "Ignore" // "mon-fri,08:00-18:00"
+    qa          = "Ignore"
+    integration = "Ignore" // "mon-fri,08:00-18:00"
+    preprod     = "Ignore"
+    production  = "Ignore"
+  }
+
+  auto_shutdown_tag_value = {
+    development = "True"
+    qa          = "False"
+    integration = "True"
+    preprod     = "False"
+    production  = "False"
+  }
+
+  overridden_tags = {
+    Role         = "ingest_replica"
+    Owner        = "dataworks-aws-ingest-replica"
+    Persistence  = local.persistence_tag_value[local.environment]
+    AutoShutdown = local.auto_shutdown_tag_value[local.environment]
+  }
+
+  common_repo_tags = merge(module.dataworks_common.common_tags, local.overridden_tags)
 
   management_account = {
     development = "management-dev"
@@ -20,11 +44,11 @@ locals {
   hbase_rootdir                   = "${data.terraform_remote_state.ingest.outputs.s3_buckets["input_bucket"]}/${local.hbase_rootdir_prefix}"
 
   emr_applications = {
-    development = ["HBase", "Ganglia", "Hive", "Spark"]
-    qa          = ["HBase", "Ganglia"]
-    integration = ["HBase", "Ganglia"]
-    preprod     = ["HBase", "Ganglia"]
-    production  = ["HBase", "Ganglia"]
+    development = ["HBase", "Hive", "Spark"]
+    qa          = ["HBase", "Hive", "Spark"]
+    integration = ["HBase", "Hive", "Spark"]
+    preprod     = ["HBase", "Hive", "Spark"]
+    production  = ["HBase", "Hive", "Spark"]
   }
 
   replica_emr_bootstrap_scripts_s3_prefix   = "component/ingest_replica/bootstrap_scripts"
