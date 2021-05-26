@@ -91,7 +91,11 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
           "dynamodb:GetItem",
           "dynamodb:Scan",
           "dynamodb:Query",
-          "dynamodb:UpdateItem"
+          "dynamodb:UpdateItem",
+          "dynamodb:PartiQLInsert",
+          "dynamodb:PartiQLUpdate",
+          "dynamodb:PartiQLDelete",
+          "dynamodb:PartiQLSelect"
         ],
         Resource : aws_dynamodb_table.hbase_incremental_refresh_dynamodb.arn
       }
