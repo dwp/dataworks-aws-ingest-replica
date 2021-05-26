@@ -26,7 +26,7 @@ resource "aws_lambda_function" "incremental_ingest_replica_emr_launcher" {
 
   environment {
     variables = {
-      EMR_LAUNCHER_CONFIG_S3_BUCKET = data.terraform_remote_state.common.outputs.config_bucket.id
+      EMR_LAUNCHER_CONFIG_S3_BUCKET = data.terraform_remote_state.common.outputs.config_bucket["id"]
       EMR_LAUNCHER_CONFIG_S3_FOLDER = local.replica_emr_configuration_files_s3_prefix
       EMR_LAUNCHER_LOG_LEVEL        = "debug"
     }
@@ -67,7 +67,7 @@ data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_read_s3"
       "kms:Decrypt",
     ]
     resources = [
-      data.terraform_remote_state.common.outputs.config_bucket_cmk.arn
+      data.terraform_remote_state.common.outputs.config_bucket_cmk["arn"]
     ]
   }
 }

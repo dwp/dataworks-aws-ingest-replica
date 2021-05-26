@@ -12,7 +12,7 @@ resource "aws_s3_bucket_object" "installer" {
   content = templatefile("files/bootstrap/installer.sh",
     {
       full_proxy    = data.terraform_remote_state.internal_compute.outputs.internet_proxy["url"]
-      full_no_proxy = join(",", data.terraform_remote_state.internal_compute.outputs.vpc.vpc.no_proxy_list)
+      full_no_proxy = join(",", data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["no_proxy_list"])
     }
   )
 
@@ -25,7 +25,7 @@ resource "aws_s3_bucket_object" "installer" {
 }
 
 resource "aws_s3_bucket_object" "certificate_setup" {
-  bucket = data.terraform_remote_state.common.outputs.config_bucket.id
+  bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/certificate_setup.sh"
   content = templatefile("files/bootstrap/certificate_setup.sh",
     {
@@ -36,9 +36,9 @@ resource "aws_s3_bucket_object" "certificate_setup" {
       truststore_certs              = local.ingest_hbase_truststore_certs[local.environment]
       dks_endpoint                  = data.terraform_remote_state.crypto.outputs.dks_endpoint[local.environment]
       s3_script_amazon_root_ca1_pem = aws_s3_bucket_object.amazon_root_ca1_pem.id
-      s3_scripts_bucket             = data.terraform_remote_state.common.outputs.config_bucket.id
+      s3_scripts_bucket             = data.terraform_remote_state.common.outputs.config_bucket["id"]
       full_proxy                    = data.terraform_remote_state.internal_compute.outputs.internet_proxy["url"]
-      full_no_proxy                 = join(",", data.terraform_remote_state.internal_compute.outputs.vpc.vpc.no_proxy_list)
+      full_no_proxy                 = join(",", data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["no_proxy_list"])
   })
   tags = merge(
     local.common_tags,
@@ -55,7 +55,7 @@ resource "aws_s3_bucket_object" "unique_hostname" {
     {
       aws_default_region = "eu-west-2"
       full_proxy         = data.terraform_remote_state.internal_compute.outputs.internet_proxy["url"]
-      full_no_proxy      = join(",", data.terraform_remote_state.internal_compute.outputs.vpc.vpc.no_proxy_list)
+      full_no_proxy      = join(",", data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["no_proxy_list"])
       name               = "hbase-replica"
   })
 
@@ -82,10 +82,10 @@ resource "aws_s3_bucket_object" "start_ssm_script" {
 }
 
 resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
-  bucket     = data.terraform_remote_state.common.outputs.config_bucket.id
+  bucket     = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key        = "${local.replica_emr_bootstrap_scripts_s3_prefix}/AmazonRootCA1.pem"
   content    = data.local_file.amazon_root_ca_1.content
-  kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk.arn
+  kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk["arn"]
 
   tags = merge(
     local.common_tags,

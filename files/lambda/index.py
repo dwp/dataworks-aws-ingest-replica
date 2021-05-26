@@ -10,8 +10,9 @@ sns_client = boto3.client("sns")
 db_client = boto3.client("dynamodb")
 
 def main():
-    print(f"environment variable: {os.environ['TABLE_NAME']}")
-    rs = db_client.execute_statement(Statement= "select status, id from myTest where status='started' order by id desc")
+    table_name = {os.environ['TABLE_NAME']}
+    select = f"select status, id from {table_name} where status='started' order by id desc"
+    rs = db_client.execute_statement(Statement=f"{select}")
     print(rs)
 
 def handler(event, context):
