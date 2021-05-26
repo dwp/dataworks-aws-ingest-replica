@@ -365,7 +365,7 @@ resource "aws_iam_role" "emr_service" {
   name               = "replica_emr_service_role"
   assume_role_policy = data.aws_iam_policy_document.emr_assume_role.json
 
-  tags = { Name = "replica_emr_service"}
+  tags = { Name = "replica_emr_service" }
 }
 
 data "aws_iam_policy_document" "emr_assume_role" {
