@@ -195,3 +195,9 @@ locals {
       } {%- endfor %}
   }
 }
+
+module "dataworks_common" {
+  source                = "{{terraform.dataworks_common_module_name}}"
+  version               = "{{terraform.dataworks_common_module_version}}"
+  tag_value_environment = local.environment
+}
