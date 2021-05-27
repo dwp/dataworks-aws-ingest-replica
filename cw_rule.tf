@@ -25,9 +25,13 @@ resource "aws_lambda_function" "hbase_incremental_refresh_lambda" {
   description      = "Lambda function for incremental refresh"
   handler          = "index.handler"
   runtime          = "python3.8"
+  timeout          = 900
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.hbase_incremental_refresh_dynamodb.name
+      table_name   = aws_dynamodb_table.hbase_incremental_refresh_dynamodb.name
+      bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+      folder = local.replica_emr_configuration_files_s3_prefix
+      topic = aws_sns_topic.hbase_incremental_refresh_sns.arn
     }
   }
   tags = local.common_tags
@@ -91,11 +95,7 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
           "dynamodb:GetItem",
           "dynamodb:Scan",
           "dynamodb:Query",
-          "dynamodb:UpdateItem",
-          "dynamodb:PartiQLInsert",
-          "dynamodb:PartiQLUpdate",
-          "dynamodb:PartiQLDelete",
-          "dynamodb:PartiQLSelect"
+          "dynamodb:UpdateItem"
         ],
         Resource : aws_dynamodb_table.hbase_incremental_refresh_dynamodb.arn
       }
