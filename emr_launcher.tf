@@ -177,7 +177,7 @@ resource "aws_iam_role_policy_attachment" "incremental_ingest_replica_emr_launch
 resource "aws_sns_topic_subscription" "incremental_trigger_subscription" {
   topic_arn = aws_sns_topic.hbase_incremental_refresh_sns.arn
   protocol  = "lambda"
-  endpoint  = aws_lambda_function.hbase_incremental_refresh_lambda.arn
+  endpoint  = aws_lambda_function.incremental_ingest_replica_emr_launcher.arn
 }
 
 resource "aws_lambda_permission" "adg_emr_launcher_incrementals_subscription_eccs" {
