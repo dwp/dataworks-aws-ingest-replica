@@ -62,6 +62,7 @@ resource "aws_lambda_permission" "allow_cloudwatch" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.hbase_incremental_refresh_lambda.function_name
   principal     = "events.amazonaws.com"
+  tags = { Name = "hbase_incremental_refresh_lambda" }
 }
 
 resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {

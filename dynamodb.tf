@@ -14,7 +14,6 @@ resource "aws_dynamodb_table" "hbase_incremental_refresh_dynamodb" {
     name = "JOB_START_TIME"
     type = "S"
   }
-
-  tags = local.common_tags
+  
   tags = { Name = "hbase_incremental_refresh" }
 }
