@@ -41,6 +41,7 @@ def get_dynamodb(table_name):
                                            PaginationConfig={'MaxItems': 1})
     except ClientError as error:
         _logger.info(error)
+        sys.exit(1)
     else:
         return page_iterator
 
@@ -53,6 +54,7 @@ def publish_sns(topic, msg, subject="HBASE incremental refresh job"):
                                 )
     except ClientError as error:
         _logger.info(error)
+        sys.exit(2)
     else:
         return rs
 
