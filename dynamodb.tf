@@ -15,16 +15,5 @@ resource "aws_dynamodb_table" "hbase_incremental_refresh_dynamodb" {
     type = "S"
   }
 
-  attribute {
-    name = "JOB_END_TIME"
-    type = "S"
-  }
-
-  local_secondary_index {
-    name            = "JOB_STATUS-JOB_FINISH_TIME-idx"
-    range_key       = "JOB_END_TIME"
-    projection_type = "ALL"
-  }
-
   tags = { Name = "hbase_incremental_refresh" }
 }

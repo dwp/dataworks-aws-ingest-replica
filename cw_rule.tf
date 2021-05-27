@@ -25,9 +25,13 @@ resource "aws_lambda_function" "hbase_incremental_refresh_lambda" {
   description      = "Lambda function for incremental refresh"
   handler          = "index.handler"
   runtime          = "python3.8"
+  timeout          = 900
   environment {
     variables = {
-      TABLE_NAME = aws_dynamodb_table.hbase_incremental_refresh_dynamodb.name
+      table_name = aws_dynamodb_table.hbase_incremental_refresh_dynamodb.name
+      bucket     = data.terraform_remote_state.common.outputs.config_bucket["id"]
+      folder     = local.replica_emr_configuration_files_s3_prefix
+      topic      = aws_sns_topic.hbase_incremental_refresh_sns.arn
     }
   }
   tags = { Name = "hbase_incremental_refresh" }
@@ -53,6 +57,12 @@ resource "aws_iam_role" "hbase_incremental_refresh_lambda_role" {
   tags = { Name = "hbase_incremental_refresh_lambda_role" }
 }
 
+resource "aws_lambda_permission" "allow_cloudwatch" {
+  statement_id  = "AllowExecutionFromCloudWatch"
+  action        = "lambda:InvokeFunction"
+  function_name = aws_lambda_function.hbase_incremental_refresh_lambda.function_name
+  principal     = "events.amazonaws.com"
+}
 
 resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
   name        = "hbase_incremental_refresh_lambda"
