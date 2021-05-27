@@ -2,7 +2,7 @@ resource "aws_cloudwatch_event_rule" "hbase_incremental_rule" {
   name                = "hbase_incremental_refresh"
   description         = "scheduler for incremental refresh"
   schedule_expression = "cron(0, 8-18, ?, *, MON-FRI, *)"
-  tags                = local.common_tags
+  tags                = { Name = "hbase_incremental_refresh" }
 }
 
 resource "aws_cloudwatch_event_target" "hbase_incremental_refresh_target" {
@@ -30,7 +30,7 @@ resource "aws_lambda_function" "hbase_incremental_refresh_lambda" {
       TABLE_NAME = aws_dynamodb_table.hbase_incremental_refresh_dynamodb.name
     }
   }
-  tags = local.common_tags
+  tags = { Name = "hbase_incremental_refresh" }
 }
 
 resource "aws_iam_role" "hbase_incremental_refresh_lambda_role" {
@@ -49,6 +49,8 @@ resource "aws_iam_role" "hbase_incremental_refresh_lambda_role" {
       },
     ]
   })
+
+  tags = { Name = "hbase_incremental_refresh_lambda_role" }
 }
 
 
@@ -101,6 +103,8 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
       }
     ]
   })
+
+  tags = { Name = "hbase_incremental_refresh_lambda" }
 }
 
 resource "aws_iam_policy_attachment" "hbase_incremental_refresh_lambda_attach" {

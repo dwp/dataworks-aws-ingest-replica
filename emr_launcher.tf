@@ -10,7 +10,7 @@ variable "emr_launcher_zip" {
 resource "aws_lambda_function" "incremental_ingest_replica_emr_launcher" {
   filename      = "${var.emr_launcher_zip["base_path"]}/emr-launcher-${var.emr_launcher_zip["version"]}.zip"
   description   = "Launches hbase-replica for incremental dataset generation"
-  function_name = "aws_incremental_ingest_replica_emr_launcher"
+  function_name = "incremental_ingest_replica_emr_launcher"
   role          = aws_iam_role.incremental_ingest_replica_emr_launcher_lambda.arn
   handler       = "emr_launcher.handler.handler"
   runtime       = "python3.7"
@@ -31,11 +31,15 @@ resource "aws_lambda_function" "incremental_ingest_replica_emr_launcher" {
       EMR_LAUNCHER_LOG_LEVEL        = "debug"
     }
   }
+
+  tags = { Name = "incremental_ingest_replica_emr_launcher" }
 }
 
 resource "aws_iam_role" "incremental_ingest_replica_emr_launcher_lambda" {
   name               = "incremental-ingest-replica-emr-launcher-lambda-role"
   assume_role_policy = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_assume_policy.json
+
+  tags = { Name = "incremental-ingest-replica-emr-launcher-lambda" }
 }
 
 data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_assume_policy" {
@@ -115,24 +119,32 @@ resource "aws_iam_policy" "incremental_ingest_replica_repository_emr_launcher_re
   name        = "incremental-ingest-replica-ReadS3"
   description = "Allow incremental-ingest-replica emr-launcher to read from S3 bucket"
   policy      = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_read_s3.json
+
+  tags = { Name = "incremental-ingest-replica-ReadS3" }
 }
 
 resource "aws_iam_policy" "incremental_ingest_replica_emr_launcher_runjobflow" {
   name        = "incremental-ingest-replica-RunJobFlow"
   description = "allow incremental-ingest-replica emr-launcher to run job flow"
   policy      = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_runjobflow.json
+
+  tags = { Name = "incremental-ingest-replica-RunJobFlow" }
 }
 
 resource "aws_iam_policy" "incremental_ingest_replica_emr_launcher_pass_role" {
   name        = "incremental-ingest-replica-PassRole"
   description = "Allow incremental-ingest-replica emr-launcher to pass role"
   policy      = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_pass_role.json
+
+  tags = { Name = "incremental-ingest-replica-PassRole" }
 }
 
 resource "aws_iam_policy" "incremental_ingest_replica_emr_launcher_getsecrets" {
   name        = "incremental-ingest-replica-getsecrets"
   description = "Allow incremental-ingest-replica emr-launcher to get metastore secret"
   policy      = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_getsecrets.json
+
+  tags = { Name = "incremental-ingest-replica-getsecrets" }
 }
 
 resource "aws_iam_role_policy_attachment" "incremental_ingest_replica_emr_launcher_read_s3" {

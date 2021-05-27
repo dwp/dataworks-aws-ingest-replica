@@ -30,12 +30,15 @@ resource "aws_emr_security_configuration" "ingest_read_replica" {
 resource "aws_iam_role" "emr_hbase_replica" {
   name               = "emr_hbase_replica"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
-  tags               = local.common_tags
+
+  tags = { Name = "emr_hbase_replica" }
 }
 
 resource "aws_iam_instance_profile" "emr_hbase_replica" {
   name = "emr_hbase_replica"
   role = aws_iam_role.emr_hbase_replica.id
+
+  tags = { Name = "emr_hbase_replica" }
 }
 
 data "aws_iam_policy_document" "ec2_assume_role" {
@@ -319,6 +322,8 @@ resource "aws_iam_policy" "replica_hbase_main" {
   name        = "ReplicaHbaseS3Main"
   description = "Allow Ingestion EMR cluster to write HBase data to the input bucket"
   policy      = data.aws_iam_policy_document.hbase_replica_main.json
+
+  tags = { Name = "ReplicaHbaseS3Main" }
 }
 
 resource "aws_iam_role_policy_attachment" "emr_ingest_hbase_main" {
@@ -343,6 +348,8 @@ resource "aws_iam_policy" "replica_hbase_ec2" {
   name        = "replica_hbase_ec2"
   description = "Policy to allow access to modify Ec2 tags"
   policy      = data.aws_iam_policy_document.replica_hbase_ec2.json
+
+  tags = { Name = "ingest_replica_ec2" }
 }
 
 resource "aws_iam_role_policy_attachment" "ingest_hbase_ec2" {
@@ -357,7 +364,8 @@ resource "aws_iam_role_policy_attachment" "ingest_hbase_ec2" {
 resource "aws_iam_role" "emr_service" {
   name               = "replica_emr_service_role"
   assume_role_policy = data.aws_iam_policy_document.emr_assume_role.json
-  tags               = local.common_tags
+
+  tags = { Name = "replica_emr_service" }
 }
 
 data "aws_iam_policy_document" "emr_assume_role" {
@@ -416,6 +424,8 @@ resource "aws_iam_policy" "emr_ebs_cmk" {
   name        = "ReplicaEmrUseEbsCmk"
   description = "Allow Ingestion EMR cluster to use EB CMK for encryption"
   policy      = data.aws_iam_policy_document.emr_ebs_cmk.json
+
+  tags = { Name = "ReplicaEmrUseEbsCmk" }
 }
 
 resource "aws_iam_role_policy_attachment" "emr_ebs_cmk" {
@@ -432,12 +442,8 @@ resource "aws_security_group" "replica_emr_hbase_common" {
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "replica-hbase-emr-common"
-    },
-  )
+  tags = { Name = "replica-hbase-emr-common" }
+
 }
 
 
@@ -451,6 +457,7 @@ resource "aws_security_group_rule" "vpce_ingress" {
   type                     = "ingress"
   source_security_group_id = aws_security_group.replica_emr_hbase_common.id
 }
+
 resource "aws_security_group_rule" "egress_to_vpce" {
   //todo: move to internal-compute vpc module
   security_group_id = aws_security_group.replica_emr_hbase_common.id
@@ -567,12 +574,7 @@ resource "aws_security_group" "emr_hbase_master" {
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "hbase-emr-master"
-    },
-  )
+  tags = { Name = "hbase-emr-master" }
 }
 
 # EMR will add more rules to this SG during cluster provisioning;
@@ -583,12 +585,7 @@ resource "aws_security_group" "replica_emr_hbase_slave" {
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "hbase-emr-slave"
-    },
-  )
+  tags = { Name = "hbase-emr-slave" }
 }
 
 
@@ -609,12 +606,7 @@ resource "aws_security_group" "emr_hbase_service" {
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "emr-hbase-service"
-    },
-  )
+  tags = { Name = "emr-hbase-service" }
 }
 
 resource "aws_s3_bucket_object" "emr_logs_folder" {
@@ -623,12 +615,7 @@ resource "aws_s3_bucket_object" "emr_logs_folder" {
   key    = "emr/aws-read-replica/"
   source = "/dev/null"
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "emr-replica-logs-folder"
-    },
-  )
+  tags = { Name = "emr-replica-logs-folder" }
 }
 
 output "replica_emr_hbase_common" {

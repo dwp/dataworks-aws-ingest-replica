@@ -16,12 +16,9 @@ resource "aws_s3_bucket_object" "installer" {
     }
   )
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "hbase-replica-installer"
-    }
-  )
+  tags = {
+    Name = "hbase-replica-installer"
+  }
 }
 
 resource "aws_s3_bucket_object" "certificate_setup" {
@@ -40,12 +37,8 @@ resource "aws_s3_bucket_object" "certificate_setup" {
       full_proxy                    = data.terraform_remote_state.internal_compute.outputs.internet_proxy["url"]
       full_no_proxy                 = join(",", data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["no_proxy_list"])
   })
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "hbase-replica-certificate-setup"
-    },
-  )
+
+  tags = { Name = "hbase-replica-certificate-setup" }
 }
 
 resource "aws_s3_bucket_object" "unique_hostname" {
@@ -59,12 +52,7 @@ resource "aws_s3_bucket_object" "unique_hostname" {
       name               = "hbase-replica"
   })
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "hbase-replica-set-unique-hostname"
-    },
-  )
+  tags = { Name = "hbase-replica-set-unique-hostname" }
 }
 
 resource "aws_s3_bucket_object" "start_ssm_script" {
@@ -73,12 +61,7 @@ resource "aws_s3_bucket_object" "start_ssm_script" {
   content    = data.local_file.start_ssm_script.content
   kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk["arn"]
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "hbase-replica-start-ssm-script"
-    },
-  )
+  tags = { Name = "hbase-replica-start-ssm-script" }
 }
 
 resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
@@ -87,11 +70,6 @@ resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
   content    = data.local_file.amazon_root_ca_1.content
   kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk["arn"]
 
-  tags = merge(
-    local.common_tags,
-    {
-      Name = "amazon-root-ca1-pem"
-    },
-  )
+  tags = { Name = "amazon-root-ca1-pem" }
 }
 

@@ -23,10 +23,7 @@ resource "aws_s3_bucket_object" "configurations_yaml" {
       s3_published_bucket                            = data.terraform_remote_state.common.outputs.published_bucket["id"]
   })
 
-  tags = merge(
-    local.common_tags,
-    { Name = "configurations.yaml" }
-  )
+  tags = { Name = "configurations.yaml" }
 }
 
 resource "aws_s3_bucket_object" "cluster_yaml" {
@@ -46,10 +43,7 @@ resource "aws_s3_bucket_object" "cluster_yaml" {
       spark_applications   = local.emr_applications[local.environment]
   })
 
-  tags = merge(
-    local.common_tags,
-    { Name = "cluster.yaml" }
-  )
+  tags = { Name = "cluster.yaml" }
 }
 
 resource "aws_s3_bucket_object" "instances_yaml" {
@@ -77,9 +71,7 @@ resource "aws_s3_bucket_object" "instances_yaml" {
       core_instance_ebs_vol_type = var.hbase_core_ebs_type[local.environment]
   })
 
-  tags = merge(
-    local.common_tags,
-  { name = "instances.yaml" })
+  tags = { Name = "instances.yaml" }
 }
 
 resource "aws_s3_bucket_object" "steps_yaml" {
@@ -97,10 +89,7 @@ resource "aws_s3_bucket_object" "steps_yaml" {
       pyspark_action_on_failure = "TERMINATE_CLUSTER"
   })
 
-  tags = merge(
-    local.common_tags,
-    { name = "steps.yaml" }
-  )
+  tags = { Name = "steps.yaml" }
 
 }
 
@@ -116,7 +105,5 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
       incremental_output_prefix = "business-data/intra-day/"
   })
 
-  tags = merge(
-    local.common_tags,
-  { Name = "emr-step-generate-dataset-from-hbase" })
+  tags = { Name = "emr-step-generate-dataset-from-hbase" }
 }
