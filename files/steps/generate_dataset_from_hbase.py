@@ -36,6 +36,7 @@ cache = {}
 dks_count = None
 record_count = None
 
+
 def setup_logging(log_level, log_path):
     logger = logging.getLogger()
     for old_handler in logger.handlers:
@@ -65,6 +66,8 @@ def get_parameters():
     )
     # Parse command line inputs and set defaults
     parser.add_argument("--correlation_id", default=0, type=int)
+    parser.add_argument("--output_s3_bucket", default=INCREMENTAL_OUTPUT_BUCKET, type=str)
+    parser.add_argument("--output_s3_prefix", default=INCREMENTAL_OUTPUT_PREFIX, type=str)
     parser.add_argument("--collections", type=str, nargs="+")
     parser.add_argument("--start_time", default=0, type=int)
     parser.add_argument(
@@ -286,9 +289,14 @@ if __name__ == "__main__":
     )
 
     args = get_parameters()
+
     start_time = args.start_time
     end_time = args.end_time
+    output_bucket = args.output_s3_bucket
+    output_prefix = args.output_s3_prefix
     collections = list(args.collections)
+
+    s3_root_path = f"s3://{output_bucket}/{output_prefix}"
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
     # Set Accumulators
     dks_count = spark.sparkContext.accumulator(0)
@@ -297,7 +305,6 @@ if __name__ == "__main__":
     business_date_hour = datetime.datetime.fromtimestamp(end_time / 1000.0).strftime(
         "%Y%m%d-%H%M"
     )
-    s3_root_path = f"s3://{INCREMENTAL_OUTPUT_BUCKET}/{INCREMENTAL_OUTPUT_PREFIX}"
     perf_start = time.perf_counter()
 
     main(spark, collections, start_time, end_time, s3_root_path, business_date_hour)
