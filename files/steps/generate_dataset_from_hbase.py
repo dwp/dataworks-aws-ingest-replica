@@ -200,7 +200,7 @@ def list_to_csv_str(x):
 
 
 def process_collection(
-    collection, spark, start_time, end_time, s3_root_path, business_date_hour
+    collection, spark, start_time, end_time, output_root_path, business_date_hour
 ):
     """Extract collection from hbase, decrypt, put in S3."""
     hbase_table_name = collection
@@ -223,9 +223,9 @@ def process_collection(
         .map(list_to_csv_str)
     )
 
-    s3_collection_dir = s3_root_path + hive_table_name + "/"
-    s3_output_dir = s3_collection_dir + business_date_hour + "/"
-    rdd.saveAsTextFile(s3_output_dir)
+    s3_collection_dir = output_root_path + hive_table_name + "/"
+    final_output_dir = s3_collection_dir + business_date_hour + "/"
+    rdd.saveAsTextFile(final_output_dir)
     return hive_table_name, s3_collection_dir
 
 
@@ -257,7 +257,7 @@ def create_hive_table(collection_tuple):
     spark.sql(create_view)
 
 
-def main(spark, collections, start_time, end_time, s3_root_path, business_date_hour):
+def main(spark, collections, start_time, end_time, output_root_path, business_date_hour):
     replica_metadata_refresh()
 
     try:
@@ -269,7 +269,7 @@ def main(spark, collections, start_time, end_time, s3_root_path, business_date_h
                     itertools.repeat(spark),
                     itertools.repeat(start_time),
                     itertools.repeat(end_time),
-                    itertools.repeat(s3_root_path),
+                    itertools.repeat(output_root_path),
                     itertools.repeat(business_date_hour),
                 )
             )
@@ -296,7 +296,7 @@ if __name__ == "__main__":
     output_prefix = args.output_s3_prefix
     collections = list(args.collections)
 
-    s3_root_path = f"s3://{output_bucket}/{output_prefix}"
+    output_root_path = f"s3://{output_bucket}/{output_prefix}"
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
     # Set Accumulators
     dks_count = spark.sparkContext.accumulator(0)
@@ -307,7 +307,7 @@ if __name__ == "__main__":
     )
     perf_start = time.perf_counter()
 
-    main(spark, collections, start_time, end_time, s3_root_path, business_date_hour)
+    main(spark, collections, start_time, end_time, output_root_path, business_date_hour)
 
     perf_end = time.perf_counter()
     total_time = round(perf_end - perf_start)
