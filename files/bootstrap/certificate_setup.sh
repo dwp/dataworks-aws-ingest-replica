@@ -79,6 +79,8 @@ cd /etc/pki/ca-trust/source/anchors/ || exit 1
 sudo touch analytical_ca.pem
 sudo chown hadoop:hadoop /etc/pki/tls/private/"${private_key_alias}".key /etc/pki/tls/certs/"${private_key_alias}".crt /etc/pki/ca-trust/source/anchors/analytical_ca.pem
 TRUSTSTORE_ALIASES="${truststore_aliases}"
+
+#shellcheck disable=SC2001
 for F in $(echo $TRUSTSTORE_ALIASES | sed "s/,/ /g"); do
     (sudo cat "$F.crt"; echo) >> analytical_ca.pem;
 done
