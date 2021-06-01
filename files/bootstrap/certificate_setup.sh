@@ -81,7 +81,7 @@ sudo chown hadoop:hadoop /etc/pki/tls/private/"${private_key_alias}".key /etc/pk
 TRUSTSTORE_ALIASES="${truststore_aliases}"
 
 #shellcheck disable=SC2001
-for F in $(echo $TRUSTSTORE_ALIASES | sed "s/,/ /g"); do
+for F in $(echo "$TRUSTSTORE_ALIASES" | sed "s/,/ /g"); do
     (sudo cat "$F.crt"; echo) >> analytical_ca.pem;
 done
 
