@@ -164,3 +164,23 @@ meta:
           - name: dataworks-aws-ingest-replica
         params:
           SPARK_LOCAL_HOSTNAME: localhost
+
+    linting-shell:
+      task: linting-shell
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: koalaman/shellcheck-alpine
+            tag: latest
+        run:
+          path: sh
+          args:
+            - -exc
+            - |
+              find . -name "*.sh" | cat >> shell-list
+              for i in $(cat shell-list); do shellcheck $i -e SC2154 -e SC1091; done
+          dir: dataworks-aws-ingest-replica
+        inputs:
+          - name: dataworks-aws-ingest-replica

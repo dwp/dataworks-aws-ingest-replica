@@ -13,6 +13,9 @@ jobs:
         params:
           path: dataworks-aws-ingest-replica-pr
           status: pending
+      - .: (( inject meta.plan.linting-shell ))
+        input_mapping:
+          dataworks-aws-ingest-replica: dataworks-aws-ingest-replica-pr
       - .: (( inject meta.plan.unit-tests ))
         input_mapping:
           dataworks-aws-ingest-replica: dataworks-aws-ingest-replica-pr
