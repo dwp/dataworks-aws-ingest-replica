@@ -80,11 +80,7 @@ resource "aws_s3_bucket_object" "steps_yaml" {
   content = templatefile("files/emr-config/steps.yaml.tpl",
     {
       s3_config_bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
-
-      certificate_setup_sh_key = aws_s3_bucket_object.certificate_setup.key
-      unique_hostname_sh_key   = aws_s3_bucket_object.unique_hostname.key
-      start_ssm_sh_key         = aws_s3_bucket_object.start_ssm_script.key
-      installer_sh_key         = aws_s3_bucket_object.installer.key
+      download_scripts_sh_key = aws_s3_bucket_object.download_scripts.key
 
       pyspark_action_on_failure = "TERMINATE_CLUSTER"
   })
@@ -106,4 +102,29 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
   })
 
   tags = { Name = "emr-step-generate-dataset-from-hbase" }
+}
+
+
+resource "aws_s3_bucket_object" "download_scripts" {
+  bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/download_scripts.sh"
+  content = templatefile("files/bootstrap/download_scripts.sh",
+    {
+      EMR_LOG_LEVEL              = local.emr_log_level[local.environment]
+      ENVIRONMENT_NAME           = local.environment
+      S3_COMMON_LOGGING_SHELL    = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], data.terraform_remote_state.common.outputs.application_logging_common_file["s3_id"])
+      S3_LOGGING_SHELL           = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], aws_s3_bucket_object.logging_sh.key)
+      bootstrap_scripts_location = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], local.replica_emr_bootstrap_scripts_s3_prefix)
+      step_scripts_location      = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], local.replica_emr_step_scripts_s3_prefix)
+  })
+
+  tags = { Name = "download_scripts" }
+}
+
+resource "aws_s3_bucket_object" "logging_sh" {
+  bucket  = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key     = "${local.replica_emr_bootstrap_scripts_s3_prefix}/logging.sh"
+  content = file("files/bootstrap/logging.sh")
+
+  tags = { Name = "logging" }
 }

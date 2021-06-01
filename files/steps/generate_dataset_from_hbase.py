@@ -65,6 +65,7 @@ def get_parameters():
         description="Receive args provided to spark submit job"
     )
     # Parse command line inputs and set defaults
+    parser.add_argument("-d", "--dry_run", dest='dry_run', action='store_true')
     parser.add_argument("--correlation_id", default=0, type=int)
     parser.add_argument("--output_s3_bucket", default=INCREMENTAL_OUTPUT_BUCKET, type=str)
     parser.add_argument("--output_s3_prefix", default=INCREMENTAL_OUTPUT_PREFIX, type=str)
@@ -75,6 +76,7 @@ def get_parameters():
         default=int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000),
         type=int,
     )
+    parser.set_defaults(dry_run=False)
     args, unrecognized_args = parser.parse_known_args()
 
     return args
@@ -289,6 +291,12 @@ if __name__ == "__main__":
     )
 
     args = get_parameters()
+
+    if args.dry_run is True:
+        # Dry run flag, quit
+        _logger.warning("Dry Run Flag (-d, --dry-run) set, exiting with success status")
+        _logger.warning("0 rows processed")
+        exit(0)
 
     start_time = args.start_time
     end_time = args.end_time
