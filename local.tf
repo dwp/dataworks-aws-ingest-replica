@@ -39,6 +39,14 @@ locals {
 
   emr_cluster_name = "ingest-replica-incremental"
 
+  emr_log_level = {
+    development = "DEBUG"
+    qa          = "DEBUG"
+    integration = "DEBUG"
+    preprod     = "INFO"
+    production  = "INFO"
+  }
+
   input_bucket_business_data_root = "business-data"
   hbase_rootdir_prefix            = "${local.input_bucket_business_data_root}/${var.hbase_rootdir[local.environment]}"
   hbase_rootdir                   = "${data.terraform_remote_state.ingest.outputs.s3_buckets["input_bucket"]}/${local.hbase_rootdir_prefix}"

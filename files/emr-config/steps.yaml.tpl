@@ -1,22 +1,26 @@
 ---
 BootstrapActions:
+- Name: "download_scripts"
+  ScriptBootstrapAction:
+    Path: "s3://${s3_config_bucket}/${download_scripts_sh_key}"
 - Name: "certificate_setup"
   ScriptBootstrapAction:
-    Path: "s3://${s3_config_bucket}/${certificate_setup_sh_key}"
+    Path: "file:/var/ci/certificate_setup.sh"
 - Name: "unique_hostname"
   ScriptBootstrapAction:
-    Path: "s3://${s3_config_bucket}/${unique_hostname_sh_key}"
+    Path: "file:/var/ci/set_unique_hostname.sh"
 - Name: "start_ssm"
   ScriptBootstrapAction:
-    Path: "s3://${s3_config_bucket}/${start_ssm_sh_key}"
+    Path: "file:/var/ci/start_ssm.sh"
 - Name: "installer"
   ScriptBootstrapAction:
-    Path: "s3://${s3_config_bucket}/${installer_sh_key}"
+    Path: "file:/var/ci/installer.sh"
 Steps:
-- Name: "submit-job"
+- Name: "spark-submit"
   HadoopJarStep:
     Args:
-    - "exit"
-    - "0"
+      - "spark-submit"
+      - "/var/ci/generate_dataset_from_hbase.py"
+      - "-d"
     Jar: "command-runner.jar"
   ActionOnFailure: "${pyspark_action_on_failure}"
