@@ -13,8 +13,15 @@ export NO_PROXY="$FULL_NO_PROXY"
 # rename ec2 instance to be unique
 export AWS_DEFAULT_REGION=${aws_default_region}
 UUID=$(dbus-uuidgen | cut -c 1-8)
-export INSTANCE_ID=$(curl http://169.254.169.254/latest/meta-data/instance-id)
-export INSTANCE_ROLE=$(jq .instanceRole /mnt/var/lib/info/extraInstanceData.json)
-export HOSTNAME=${name}-$${INSTANCE_ROLE//\"}-$UUID
-hostname $HOSTNAME
-aws ec2 create-tags --resources $INSTANCE_ID --tags Key=Name,Value=$HOSTNAME
+TOKEN=$(curl -X PUT -H "X-aws-ec2-metadata-token-ttl-seconds: 21600" "http://169.254.169.254/latest/api/token")
+
+instance=$(curl -H "X-aws-ec2-metadata-token:$TOKEN" -s http://169.254.169.254/latest/meta-data/instance-id)
+role=$(jq .instanceRole /mnt/var/lib/info/extraInstanceData.json)
+host="${name}-$${INSTANCE_ROLE//\"}-$UUID"
+
+export INSTANCE_ID="$instance"
+export INSTANCE_ROLE="$role"
+export HOSTNAME="$host"
+
+hostnamectl set-hostname "$HOSTNAME"
+aws ec2 create-tags --resources "$INSTANCE_ID" --tags Key=Name,Value="$HOSTNAME"

@@ -32,9 +32,13 @@ if [ ! -x $PIP ]; then
   exit 1
 fi
 
-
+#shellcheck disable=SC2024
 sudo -E $PIP install boto3 >> /var/log/installer/install-boto3.log 2>&1
+#shellcheck disable=SC2024
 sudo -E $PIP install requests >> /var/log/installer/install-requests.log 2>&1
-sudo yum install -y python3-devel >> /var/log/installer/install-pycrypto.log 2>&1
-sudo -E $PIP install pycryptodome >> /var/log/installer/install-pycrypto.log 2>&1
-sudo yum remove -y python3-devel >> /var/log/installer/install-pycrypto.log 2>&1
+#shellcheck disable=SC2024
+{
+  sudo yum install -y python3-devel
+  sudo -E $PIP install pycryptodome
+  sudo yum remove -y python3-devel
+} >> /var/log/installer/install-pycrypto.log 2>&1
