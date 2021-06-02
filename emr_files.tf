@@ -96,9 +96,8 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
     {
       dks_decrypt_endpoint = data.terraform_remote_state.crypto.outputs.dks_endpoint[local.environment]
       log_path             = "/var/log/adg_incremental_step.log"
-      # todo - temporary output location
-      incremental_output_bucket = data.terraform_remote_state.ingest.outputs.s3_buckets["input_bucket"]
-      incremental_output_prefix = "business-data/intra-day/"
+      incremental_output_bucket = data.terraform_remote_state.common.outputs.published_bucket["id"]
+      incremental_output_prefix = "intra-day/"
   })
 
   tags = { Name = "emr-step-generate-dataset-from-hbase" }
