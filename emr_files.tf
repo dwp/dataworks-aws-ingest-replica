@@ -79,7 +79,7 @@ resource "aws_s3_bucket_object" "steps_yaml" {
   key    = "${local.replica_emr_configuration_files_s3_prefix}/steps.yaml"
   content = templatefile("files/emr-config/steps.yaml.tpl",
     {
-      s3_config_bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+      s3_config_bucket        = data.terraform_remote_state.common.outputs.config_bucket["id"]
       download_scripts_sh_key = aws_s3_bucket_object.download_scripts.key
 
       pyspark_action_on_failure = "TERMINATE_CLUSTER"
