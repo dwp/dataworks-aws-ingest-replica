@@ -110,19 +110,6 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
-    sid    = "IngestConfigBucketScripts"
-    effect = "Allow"
-
-    actions = [
-      "s3:GetObject*",
-    ]
-
-    resources = [
-      "${data.terraform_remote_state.common.outputs.config_bucket["arn"]}/component/ingest_emr/*"
-    ]
-  }
-
-  statement {
     sid    = "KMSDecryptForConfigBucket"
     effect = "Allow"
     actions = [
