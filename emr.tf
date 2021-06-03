@@ -97,6 +97,53 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
+    sid = "AllowGetandListOnPublishedBucket"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetBucketLocation",
+      "s3:ListBucket",
+    ]
+
+    resources = [
+      data.terraform_remote_state.common.outputs.published_bucket["arn"],
+    ]
+  }
+
+  statement {
+    sid = "AllowGetPutDeleteOnPublishedDirs"
+    effect = "Allow"
+
+    actions = [
+      "s3:GetObject*",
+      "s3:DeleteObject*",
+      "s3:PutObject*",
+    ]
+
+    resources = [
+      "${data.terraform_remote_state.common.outputs.published_bucket["arn"]}/intra-day/*",
+      "${data.terraform_remote_state.common.outputs.published_bucket["arn"]}/intra-day-tests/*",
+    ]
+  }
+
+  statement {
+    sid = "AllowKMSForPublished"
+    effect = "Allow"
+
+    actions = [
+      "kms:Encrypt",
+      "kms:Decrypt",
+      "kms:ReEncrypt*",
+      "kms:GenerateDataKey*",
+      "kms:DescribeKey",
+    ]
+
+    resources = [
+      data.terraform_remote_state.common.outputs.published_bucket_cmk["arn"],
+    ]
+  }
+
+  statement {
     sid    = "ListConfigBucket"
     effect = "Allow"
 
@@ -106,19 +153,6 @@ data "aws_iam_policy_document" "hbase_replica_main" {
 
     resources = [
       data.terraform_remote_state.common.outputs.config_bucket["arn"]
-    ]
-  }
-
-  statement {
-    sid    = "IngestConfigBucketScripts"
-    effect = "Allow"
-
-    actions = [
-      "s3:GetObject*",
-    ]
-
-    resources = [
-      "${data.terraform_remote_state.common.outputs.config_bucket["arn"]}/component/ingest_emr/*"
     ]
   }
 
