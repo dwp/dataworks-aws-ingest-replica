@@ -21,6 +21,5 @@ Steps:
     Args:
       - "spark-submit"
       - "/var/ci/generate_dataset_from_hbase.py"
-      - "-d"
     Jar: "command-runner.jar"
   ActionOnFailure: "${pyspark_action_on_failure}"
