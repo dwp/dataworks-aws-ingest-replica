@@ -98,6 +98,7 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
       log_path             = "/var/log/adg_incremental_step.log"
       incremental_output_bucket = data.terraform_remote_state.common.outputs.published_bucket["id"]
       incremental_output_prefix = "intra-day/"
+      collections_secret_name = "/ingest-replica/collections"
   })
 
   tags = { Name = "emr-step-generate-dataset-from-hbase" }
