@@ -69,10 +69,14 @@ def get_parameters():
         description="Receive args provided to spark submit job"
     )
     # Parse command line inputs and set defaults
-    parser.add_argument("-d", "--dry_run", dest='dry_run', action='store_true')
+    parser.add_argument("-d", "--dry_run", dest="dry_run", action="store_true")
     parser.add_argument("--correlation_id", default=0, type=int)
-    parser.add_argument("--output_s3_bucket", default=INCREMENTAL_OUTPUT_BUCKET, type=str)
-    parser.add_argument("--output_s3_prefix", default=INCREMENTAL_OUTPUT_PREFIX, type=str)
+    parser.add_argument(
+        "--output_s3_bucket", default=INCREMENTAL_OUTPUT_BUCKET, type=str
+    )
+    parser.add_argument(
+        "--output_s3_prefix", default=INCREMENTAL_OUTPUT_PREFIX, type=str
+    )
     parser.add_argument("--collections", type=str, nargs="+")
     parser.add_argument("--start_time", default=0, type=int)
     parser.add_argument(
@@ -280,7 +284,9 @@ def create_hive_table(collection_tuple):
     spark.sql(create_view)
 
 
-def main(spark, collections, start_time, end_time, output_root_path, business_date_hour):
+def main(
+    spark, collections, start_time, end_time, output_root_path, business_date_hour
+):
     replica_metadata_refresh()
 
     try:
