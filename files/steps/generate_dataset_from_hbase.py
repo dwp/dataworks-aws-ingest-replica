@@ -1,6 +1,8 @@
 #!/usr/bin/python3
 import argparse
+import ast
 import base64
+import boto3
 import binascii
 import concurrent.futures
 import csv
@@ -29,6 +31,8 @@ DKS_DECRYPT_ENDPOINT = DKS_ENDPOINT + "/datakey/actions/decrypt/"
 
 INCREMENTAL_OUTPUT_BUCKET = "${incremental_output_bucket}"
 INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
+
+COLLECTIONS_SECRET_NAME = "${collections_secret_name}"
 
 LOG_PATH = "${log_path}"
 cache = {}
@@ -80,6 +84,23 @@ def get_parameters():
     args, unrecognized_args = parser.parse_known_args()
 
     return args
+
+
+def get_collections(collections_secret_name):
+    return [
+        f"{j['db']}:{j['table']}"
+        for j in retrieve_secrets(collections_secret_name)["collections_all"].values()
+    ]
+
+
+def retrieve_secrets(secret_name):
+    session = boto3.session.Session()
+    client = session.client(service_name="secretsmanager")
+    response = client.get_secret_value(SecretId=secret_name)
+    response_binary = response["SecretString"]
+    response_decoded = base64.b64decode(response_binary).decode("utf-8")
+    response_dict = ast.literal_eval(response_decoded)
+    return response_dict
 
 
 def replica_metadata_refresh():
@@ -297,6 +318,13 @@ if __name__ == "__main__":
         _logger.warning("Dry Run Flag (-d, --dry-run) set, exiting with success status")
         _logger.warning("0 rows processed")
         exit(0)
+
+    if not args.collections:
+        args.collections = get_collections(COLLECTIONS_SECRET_NAME)
+        if len(args.collections) == 0:
+            _logger.warning("No collections to process, exiting")
+            _logger.warning("0 rows processed")
+            exit(0)
 
     start_time = args.start_time
     end_time = args.end_time
