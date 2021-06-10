@@ -250,8 +250,8 @@ def process_collection(
         .map(list_to_csv_str)
     )
 
-    s3_collection_dir = output_root_path + hive_table_name + "/"
-    final_output_dir = s3_collection_dir + business_date_hour + "/"
+    s3_collection_dir = os.path.join(output_root_path, hive_table_name)
+    final_output_dir = os.path.join(s3_collection_dir, business_date_hour) + "/"
     rdd.saveAsTextFile(final_output_dir)
     return hive_table_name, s3_collection_dir
 
