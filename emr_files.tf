@@ -94,11 +94,11 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
   key    = "${local.replica_emr_step_scripts_s3_prefix}/generate_dataset_from_hbase.py"
   content = templatefile("files/steps/generate_dataset_from_hbase.py",
     {
-      dks_decrypt_endpoint = data.terraform_remote_state.crypto.outputs.dks_endpoint[local.environment]
-      log_path             = "/var/log/adg_incremental_step.log"
+      dks_decrypt_endpoint      = data.terraform_remote_state.crypto.outputs.dks_endpoint[local.environment]
+      log_path                  = "/var/log/adg_incremental_step.log"
       incremental_output_bucket = data.terraform_remote_state.common.outputs.published_bucket["id"]
       incremental_output_prefix = "intra-day/"
-      collections_secret_name = "/ingest-replica/collections"
+      collections_secret_name   = "/ingest-replica/collections"
   })
 
   tags = { Name = "emr-step-generate-dataset-from-hbase" }

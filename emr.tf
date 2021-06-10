@@ -97,7 +97,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
-    sid = "AllowGetandListOnPublishedBucket"
+    sid    = "AllowGetandListOnPublishedBucket"
     effect = "Allow"
 
     actions = [
@@ -111,7 +111,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
-    sid = "AllowGetPutDeleteOnPublishedDirs"
+    sid    = "AllowGetPutDeleteOnPublishedDirs"
     effect = "Allow"
 
     actions = [
@@ -127,7 +127,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
-    sid = "AllowKMSForPublished"
+    sid    = "AllowKMSForPublished"
     effect = "Allow"
 
     actions = [

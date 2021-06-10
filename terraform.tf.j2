@@ -12,7 +12,7 @@ terraform {
 }
 
 provider "aws" {
-  version = "~> 3.42.0"
+version = "~> 3.42.0"
   region  = "{{terraform.provider_region}}"
 
   assume_role {
@@ -25,7 +25,7 @@ provider "aws" {
 }
 
 provider "aws" {
-  version = "~> 3.42.0"
+version = "~> 3.42.0"
   region  = var.region
   alias   = "management_dns"
 
