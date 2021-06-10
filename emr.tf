@@ -97,7 +97,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
-    sid = "AllowGetandListOnPublishedBucket"
+    sid    = "AllowGetandListOnPublishedBucket"
     effect = "Allow"
 
     actions = [
@@ -111,7 +111,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
-    sid = "AllowGetPutDeleteOnPublishedDirs"
+    sid    = "AllowGetPutDeleteOnPublishedDirs"
     effect = "Allow"
 
     actions = [
@@ -127,7 +127,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
-    sid = "AllowKMSForPublished"
+    sid    = "AllowKMSForPublished"
     effect = "Allow"
 
     actions = [
@@ -650,8 +650,4 @@ resource "aws_s3_bucket_object" "emr_logs_folder" {
   source = "/dev/null"
 
   tags = { Name = "emr-replica-logs-folder" }
-}
-
-output "replica_emr_hbase_common" {
-  value = aws_security_group.replica_emr_hbase_common
 }
