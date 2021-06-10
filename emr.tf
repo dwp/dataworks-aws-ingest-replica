@@ -651,7 +651,3 @@ resource "aws_s3_bucket_object" "emr_logs_folder" {
 
   tags = { Name = "emr-replica-logs-folder" }
 }
-
-output "replica_emr_hbase_common" {
-  value = aws_security_group.replica_emr_hbase_common
-}
