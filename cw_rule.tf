@@ -28,10 +28,10 @@ resource "aws_lambda_function" "hbase_incremental_refresh_lambda" {
   timeout          = 900
   environment {
     variables = {
-      table_name = aws_dynamodb_table.hbase_incremental_refresh_dynamodb.name
-      bucket     = data.terraform_remote_state.common.outputs.config_bucket["id"]
-      folder     = local.replica_emr_configuration_files_s3_prefix
-      topic      = aws_sns_topic.hbase_incremental_refresh_sns.arn
+      job_status_table_name = aws_dynamodb_table.job_status.name
+      emr_config_bucket     = data.terraform_remote_state.common.outputs.config_bucket["id"]
+      emr_config_folder     = local.replica_emr_configuration_files_s3_prefix
+      sns_topic_arn         = aws_sns_topic.hbase_incremental_refresh_sns.arn
     }
   }
   tags = { Name = "hbase_incremental_refresh" }
@@ -109,7 +109,10 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
           "dynamodb:PartiQLDelete",
           "dynamodb:PartiQLSelect"
         ],
-        Resource : aws_dynamodb_table.hbase_incremental_refresh_dynamodb.arn
+        Resource : [
+          aws_dynamodb_table.job_status.arn,
+          "${aws_dynamodb_table.job_status.arn}/index/*"
+        ]
       }
     ]
   })
