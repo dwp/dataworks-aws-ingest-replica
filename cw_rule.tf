@@ -5,11 +5,11 @@ resource "aws_cloudwatch_event_rule" "hbase_incremental_rule" {
   tags                = { Name = "hbase_incremental_refresh" }
 }
 
-resource "aws_cloudwatch_event_target" "hbase_incremental_refresh_target" {
-  rule      = aws_cloudwatch_event_rule.hbase_incremental_rule.name
-  target_id = "hbase_incremental_refresh_target"
-  arn       = aws_lambda_function.hbase_incremental_refresh_lambda.arn
-}
+//resource "aws_cloudwatch_event_target" "hbase_incremental_refresh_target" {
+//  rule      = aws_cloudwatch_event_rule.hbase_incremental_rule.name
+//  target_id = "hbase_incremental_refresh_target"
+//  arn       = aws_lambda_function.hbase_incremental_refresh_lambda.arn
+//}
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
