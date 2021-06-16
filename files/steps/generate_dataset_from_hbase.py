@@ -90,8 +90,10 @@ def get_parameters():
 
 
 def update_db_item(table, correlation_id: str, triggered_time: int, values: dict):
-    updates = {key: {"Value": value} for key, value in values.items()}
+    if correlation_id is None or correlation_id in ["0", ""]:
+        return
 
+    updates = {key: {"Value": value} for key, value in values.items()}
     table.update_item(
         Key={
             "CorrelationId": correlation_id,
@@ -370,6 +372,10 @@ if __name__ == "__main__":
     perf_start = time.perf_counter()
     try:
         main(spark, args, output_root_path, business_date_hour)
+        update_db_item(table=job_table,
+                       correlation_id=args.correlation_id,
+                       triggered_time=args.triggered_time,
+                       values={"JobStatus": "COMPLETED"})
     except Exception:
         update_db_item(
             job_table,
