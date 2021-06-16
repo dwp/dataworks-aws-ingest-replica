@@ -109,11 +109,13 @@ def launch_cluster(
             "additional_step_args": {
                 "spark-submit": [
                     "--start_time",
-                    int(previous_end_time),
+                    str(previous_end_time),
                     "--end_time",
-                    int(new_end_time),
+                    str(new_end_time),
                     "--correlation_id",
                     str(correlation_id),
+                    "--triggered_time",
+                    str(triggered_time),
                 ]
             },
         }

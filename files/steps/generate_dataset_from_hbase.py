@@ -72,7 +72,7 @@ def get_parameters():
     )
     # Parse command line inputs and set defaults
     parser.add_argument("-d", "--dry_run", dest="dry_run", action="store_true")
-    parser.add_argument("--correlation_id", default=0, type=str)
+    parser.add_argument("--correlation_id", default="0", type=str)
     parser.add_argument("--triggered_time", default=0, type=int)
     parser.add_argument(
         "--output_s3_bucket", default=INCREMENTAL_OUTPUT_BUCKET, type=str
