@@ -7,7 +7,7 @@ meta:
           type: docker-image
           source:
             repository: ((dataworks.terraform_repository))
-            tag: ((dataworks.terraform_version))
+            tag: ((dataworks.terraform_13_version))
         params:
           TF_INPUT: false
           TF_CLI_ARGS_apply: -lock-timeout=300s
@@ -48,6 +48,7 @@ meta:
             - |
               export TF_VAR_emr_al2_ami_id=$(cat ../al2-emr-ami/id)
               cp ../terraform-bootstrap/terraform.tf .
+              export TF_VAR_emr_launcher_zip="{base_path = \"../emr-launcher-release\", version = \"$(cat ../emr-launcher-release/version)\"}"
               terraform workspace show
               terraform init
               terraform plan -out terraform.plan
@@ -55,6 +56,7 @@ meta:
           dir: dataworks-aws-ingest-replica
         inputs:
           - name: dataworks-aws-ingest-replica
+          - name: emr-launcher-release
           - name: terraform-bootstrap
           - name: al2-emr-ami
     terraform-plan:
@@ -68,12 +70,14 @@ meta:
             - |
               export TF_VAR_emr_al2_ami_id=$(cat ../al2-emr-ami/id)
               cp ../terraform-bootstrap/terraform.tf .
+              export TF_VAR_emr_launcher_zip="{base_path = \"../emr-launcher-release\", version = \"$(cat ../emr-launcher-release/version)\"}"
               terraform workspace show
               terraform init
               terraform plan $DETAILED_EXITCODE
           dir: dataworks-aws-ingest-replica
         inputs:
           - name: dataworks-aws-ingest-replica
+          - name: emr-launcher-release
           - name: terraform-bootstrap
           - name: al2-emr-ami
       params:
@@ -138,3 +142,76 @@ meta:
               else
                 echo No cluster exists, nothing to terminate.
               fi
+
+    unit-tests:
+      task: unit-tests
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: dwpdigital/python3-pyspark-pytest
+        run:
+          path: sh
+          dir: dataworks-aws-ingest-replica
+          args:
+            - -exc
+            - |
+              unset http_proxy
+              unset https_proxy
+              pytest -vs files/steps/tests.py
+        inputs:
+          - name: dataworks-aws-ingest-replica
+        params:
+          SPARK_LOCAL_HOSTNAME: localhost
+
+    linting-shell:
+      task: linting-shell
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: koalaman/shellcheck-alpine
+            tag: latest
+        run:
+          path: sh
+          args:
+            - -exc
+            - |
+              find . -name "*.sh" | cat >> shell-list
+              for i in $(cat shell-list); do shellcheck $i -e SC2154 -e SC1091; done
+          dir: dataworks-aws-ingest-replica
+        inputs:
+          - name: dataworks-aws-ingest-replica
+
+    e2e-tests:
+      task: e2e-tests
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: ((dataworks.docker_python_boto_behave_repository))
+            tag: ((dataworks.docker_python_boto_behave_version))
+        params:
+          AWS_DEFAULT_REGION: ((dataworks.aws_region))
+          NUMBER_OF_TOPICS_TO_USE: "3"
+          E2E_TEST_TIMEOUT: 300
+          E2E_FEATURE_TAG_FILTER: "@ingest-replica"
+          ASSUME_DURATION: 3600
+        run:
+          path: sh
+          dir: dataworks-behavioural-framework
+          args:
+            - -exc
+            - |
+              source /assume-role
+
+              cd src/runners
+              ./run-ci.sh \
+              "../../../meta"
+        inputs:
+          - name: dataworks-behavioural-framework
+          - name: dataworks-aws-ingest-replica
+          - name: meta
