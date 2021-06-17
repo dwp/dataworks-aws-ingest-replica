@@ -1,3 +1,13 @@
+variable "emr_release" {
+  default = {
+    development = "5.30.1"
+    qa          = "5.30.1"
+    integration = "5.30.1"
+    preprod     = "5.30.1"
+    production  = "5.30.1"
+  }
+}
+
 
 variable "emr_mapreduce_task_timeout_seconds" {
   type        = map(number)
