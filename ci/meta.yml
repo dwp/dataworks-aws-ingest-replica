@@ -184,3 +184,34 @@ meta:
           dir: dataworks-aws-ingest-replica
         inputs:
           - name: dataworks-aws-ingest-replica
+
+    e2e-tests:
+      task: e2e-tests
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: ((dataworks.docker_python_boto_behave_repository))
+            tag: ((dataworks.docker_python_boto_behave_version))
+        params:
+          AWS_DEFAULT_REGION: ((dataworks.aws_region))
+          NUMBER_OF_TOPICS_TO_USE: "3"
+          E2E_TEST_TIMEOUT: 300
+          E2E_FEATURE_TAG_FILTER: "@ingest-replica"
+          ASSUME_DURATION: 3600
+        run:
+          path: sh
+          dir: dataworks-behavioural-framework
+          args:
+            - -exc
+            - |
+              source /assume-role
+
+              cd src/runners
+              ./run-ci.sh \
+              "../../../meta"
+        inputs:
+          - name: dataworks-behavioural-framework
+          - name: dataworks-aws-ingest-replica
+          - name: meta

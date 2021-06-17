@@ -1,29 +1,37 @@
 jobs:
-  - name: qa
+  - name: integration
     max_in_flight: 1
     plan:
       - in_parallel:
           - put: meta
-            resource: meta-qa
+            resource: meta-integration
           - get: dataworks-behavioural-framework
+            passed:
+              - qa
             trigger: false
           - get: dataworks-aws-ingest-replica
+            passed:
+              - qa
             trigger: true
           - get: al2-emr-ami
+            passed:
+              - qa
             trigger: false
           - get: emr-launcher-release
+            passed:
+              - qa
             trigger: false
       - .: (( inject meta.plan.unit-tests ))
       - .: (( inject meta.plan.terraform-bootstrap ))
       - .: (( inject meta.plan.terraform-apply ))
         params:
-          TF_WORKSPACE: 'qa'
+          TF_WORKSPACE: integration
       - .: (( inject meta.plan.terraform-plan ))
         params:
-          TF_WORKSPACE: 'qa'
+          TF_WORKSPACE: integration
       - .: (( inject meta.plan.e2e-tests ))
         config:
           params:
-            TF_WORKSPACE: 'qa'
-            AWS_ACC: ((aws_account.development))
-            AWS_ROLE_ARN: arn:aws:iam::((aws_account.development)):role/ci
+            TF_WORKSPACE: integration
+            AWS_ACC: ((aws_account.integration))
+            AWS_ROLE_ARN: arn:aws:iam::((aws_account.integration)):role/ci
