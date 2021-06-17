@@ -99,6 +99,7 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
       incremental_output_bucket = data.terraform_remote_state.common.outputs.published_bucket["id"]
       incremental_output_prefix = "intra-day/"
       collections_secret_name   = "/ingest-replica/collections"
+      job_status_table_name = aws_dynamodb_table.job_status.name
   })
 
   tags = { Name = "emr-step-generate-dataset-from-hbase" }

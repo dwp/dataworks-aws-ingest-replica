@@ -1,18 +1,30 @@
-resource "aws_dynamodb_table" "hbase_incremental_refresh_dynamodb" {
-  name           = "hbase_incremental_refresh"
-  read_capacity  = 5
-  write_capacity = 5
-  hash_key       = "JOB_STATUS"
-  range_key      = "JOB_START_TIME"
+resource "aws_dynamodb_table" "job_status" {
+  name         = "intra-day"
+  hash_key     = "CorrelationId"
+  range_key    = "TriggeredTime"
+  billing_mode = "PAY_PER_REQUEST"
 
   attribute {
-    name = "JOB_STATUS"
+    name = "CorrelationId"
     type = "S"
   }
 
   attribute {
-    name = "JOB_START_TIME"
+    name = "TriggeredTime"
+    type = "N"
+  }
+
+  attribute {
+    name = "JobStatus"
     type = "S"
+  }
+
+  global_secondary_index {
+    hash_key           = "JobStatus"
+    range_key          = "TriggeredTime"
+    name               = "StatusIndex"
+    projection_type    = "INCLUDE"
+    non_key_attributes = ["ProcessedDataStart", "ProcessedDataEnd"]
   }
 
   tags = { Name = "hbase_incremental_refresh" }

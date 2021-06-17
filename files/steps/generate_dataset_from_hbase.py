@@ -32,11 +32,13 @@ DKS_DECRYPT_ENDPOINT = DKS_ENDPOINT + "/datakey/actions/decrypt/"
 INCREMENTAL_OUTPUT_BUCKET = "${incremental_output_bucket}"
 INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 
+JOB_STATUS_TABLE = "${job_status_table_name}"
 COLLECTIONS_SECRET_NAME = "${collections_secret_name}"
 
 LOG_PATH = "${log_path}"
-cache = {}
+dks_cache = {}
 
+# pyspark accumulators
 dks_count = None
 record_count = None
 
@@ -70,7 +72,8 @@ def get_parameters():
     )
     # Parse command line inputs and set defaults
     parser.add_argument("-d", "--dry_run", dest="dry_run", action="store_true")
-    parser.add_argument("--correlation_id", default=0, type=int)
+    parser.add_argument("--correlation_id", default="0", type=str)
+    parser.add_argument("--triggered_time", default=0, type=int)
     parser.add_argument(
         "--output_s3_bucket", default=INCREMENTAL_OUTPUT_BUCKET, type=str
     )
@@ -79,15 +82,25 @@ def get_parameters():
     )
     parser.add_argument("--collections", type=str, nargs="+")
     parser.add_argument("--start_time", default=0, type=int)
-    parser.add_argument(
-        "--end_time",
-        default=int(datetime.datetime.now(datetime.timezone.utc).timestamp() * 1000),
-        type=int,
-    )
+    parser.add_argument("--end_time", default=None, type=int)
     parser.set_defaults(dry_run=False)
     args, unrecognized_args = parser.parse_known_args()
 
     return args
+
+
+def update_db_item(table, correlation_id: str, triggered_time: int, values: dict):
+    if correlation_id is None or correlation_id in ["0", ""]:
+        return
+
+    updates = {key: {"Value": value} for key, value in values.items()}
+    table.update_item(
+        Key={
+            "CorrelationId": correlation_id,
+            "TriggeredTime": triggered_time,
+        },
+        AttributeUpdates=updates,
+    )
 
 
 def get_collections(collections_secret_name):
@@ -147,10 +160,10 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
 
 
 def get_plaintext_key(url, kek, cek):
-    plaintext_key = cache.get(kek)
+    plaintext_key = dks_cache.get(kek)
     if not plaintext_key:
         plaintext_key = get_key_from_dks(url, kek, cek)
-        cache[kek] = plaintext_key
+        dks_cache[kek] = plaintext_key
     return plaintext_key
 
 
@@ -171,7 +184,7 @@ def get_key_from_dks(url, kek, cek):
     )
     content = response.json()
     plaintext_key = content["plaintextDataKey"]
-    cache[kek] = plaintext_key
+    dks_cache[kek] = plaintext_key
     dks_count.add(1)
     return plaintext_key
 
@@ -284,9 +297,7 @@ def create_hive_table(collection_tuple):
     spark.sql(create_view)
 
 
-def main(
-    spark, collections, start_time, end_time, output_root_path, business_date_hour
-):
+def main(spark, args, output_root_path, business_date_hour):
     replica_metadata_refresh()
 
     try:
@@ -294,10 +305,10 @@ def main(
             all_collections = list(
                 executor.map(
                     process_collection,
-                    collections,
+                    args.collections,
                     itertools.repeat(spark),
-                    itertools.repeat(start_time),
-                    itertools.repeat(end_time),
+                    itertools.repeat(args.start_time),
+                    itertools.repeat(args.end_time),
                     itertools.repeat(output_root_path),
                     itertools.repeat(business_date_hour),
                 )
@@ -317,6 +328,7 @@ if __name__ == "__main__":
         log_path=LOG_PATH,
     )
 
+    cluster_id = os.environ["EMR_CLUSTER_ID"]
     args = get_parameters()
 
     if args.dry_run is True:
@@ -332,26 +344,48 @@ if __name__ == "__main__":
             _logger.warning("0 rows processed")
             exit(0)
 
-    start_time = args.start_time
-    end_time = args.end_time
-    output_bucket = args.output_s3_bucket
-    output_prefix = args.output_s3_prefix
-    collections = list(args.collections)
+    if not args.end_time:
+        args.end_time = round(time.time() * 1000) - (5 * 60 * 1000)
 
-    output_root_path = f"s3://{output_bucket}/{output_prefix}"
+    dynamodb = boto3.resource("dynamodb")
+    job_table = dynamodb.Table(JOB_STATUS_TABLE)
+
+    output_root_path = f"s3://{args.output_s3_bucket}/{args.output_s3_prefix}"
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
     # Set Accumulators
     dks_count = spark.sparkContext.accumulator(0)
     record_count = spark.sparkContext.accumulator(0)
 
-    business_date_hour = datetime.datetime.fromtimestamp(end_time / 1000.0).strftime(
-        "%Y%m%d-%H%M"
+    business_date_hour = datetime.datetime.fromtimestamp(
+        args.end_time / 1000.0
+    ).strftime("%Y%m%d-%H%M")
+
+    update_db_item(
+        job_table,
+        args.correlation_id,
+        args.triggered_time,
+        {"JobStatus": "PROCESSING",
+         "EMRReadyTime": round(time.time() * 1000),
+         "ProcessedDataEnd": int(args.end_time),
+         "ProcessedDataStart": int(args.start_time)},
     )
     perf_start = time.perf_counter()
-
-    main(spark, collections, start_time, end_time, output_root_path, business_date_hour)
-
+    try:
+        main(spark, args, output_root_path, business_date_hour)
+        update_db_item(table=job_table,
+                       correlation_id=args.correlation_id,
+                       triggered_time=args.triggered_time,
+                       values={"JobStatus": "COMPLETED"})
+    except Exception:
+        update_db_item(
+            job_table,
+            args.correlation_id,
+            args.triggered_time,
+            {"JobStatus": "EMR_FAILED"},
+        )
+        raise
     perf_end = time.perf_counter()
+
     total_time = round(perf_end - perf_start)
     _logger.info(
         f"time taken to process collections: {record_count.value} records"
