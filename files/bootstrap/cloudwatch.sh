@@ -1,8 +1,7 @@
 #!/bin/bash
 
 set -Eeuo pipefail
-
-
+(
 cwa_metrics_collection_interval="${cwa_metrics_collection_interval}"
 cwa_namespace="${cwa_namespace}"
 cwa_log_group_name="${cwa_log_group_name}"
@@ -101,25 +100,7 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<CWAGEN
             "log_group_name": "$${cwa_yarnspark_loggrp_name}",
             "log_stream_name": "{instance_id}-yarn_nodemanager.log",
             "timezone": "UTC"
-          },
-          {
-            "file_path": "/var/log/chrony/statistics.log",
-            "log_group_name": "$${cwa_chrony_loggrp_name}",
-            "log_stream_name": "{instance_id}-chrony-statistics.log",
-            "timezone": "UTC"
-          },
-          {
-            "file_path": "/var/log/chrony/measurements.log",
-            "log_group_name": "$${cwa_chrony_loggrp_name}",
-            "log_stream_name": "{instance_id}-chrony-measurements.log",
-            "timezone": "UTC"
-          },
-          {
-            "file_path": "/var/log/chrony/tracking.log",
-            "log_group_name": "$${cwa_chrony_loggrp_name}",
-            "log_stream_name": "{instance_id}-chrony-tracking.log",
-            "timezone": "UTC"
-          },
+          }
         ]
       }
     },
@@ -141,3 +122,4 @@ start amazon-cloudwatch-agent
 sudo /opt/aws/amazon-cloudwatch-agent/bin/amazon-cloudwatch-agent-ctl -a fetch-config -m ec2 -c file:/opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json
 systemctl start amazon-cloudwatch-agent
 %{ endif ~}
+) >> /var/log/emr-bootstrap/enable_cloudwatch.log 2>&1

@@ -9,9 +9,9 @@ export HTTPS_PROXY="$FULL_PROXY"
 export no_proxy="$FULL_NO_PROXY"
 export NO_PROXY="$FULL_NO_PROXY"
 
-if [ ! -d "/var/log/installer" ]; then
-  sudo mkdir -p /var/log/installer
-  sudo chown hadoop:hadoop /var/log/installer
+if [ ! -d "/var/log/emr-bootstrap" ]; then
+  sudo mkdir -p /var/log/emr-bootstrap
+  sudo chown hadoop:hadoop /var/log/emr-bootstrap
 fi
 
 PIP=/usr/local/bin/pip3
@@ -31,6 +31,8 @@ if [ ! -x $PIP ]; then
   echo "pip3 not found" >> /var/log/emr-bootstrap/installer.log 2>&1
   exit 1
 fi
+
+sudo /var/ci/cloudwatch.sh
 
 #shellcheck disable=SC2024
 sudo -E $PIP install boto3 >> /var/log/emr-bootstrap/install-boto3.log 2>&1
