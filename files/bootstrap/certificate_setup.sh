@@ -87,4 +87,4 @@ done
 
 echo "Completed the certificate-setup.sh step of the EMR Cluster"
 
-) >> /var/log/acm/nohup.log 2>&1
+) >> /var/log/emr-bootstrap/acm-cert-retriever.log 2>&1
