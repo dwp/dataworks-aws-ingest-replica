@@ -107,7 +107,13 @@ cat > /opt/aws/amazon-cloudwatch-agent/etc/amazon-cloudwatch-agent.json <<CWAGEN
             "log_group_name": "$${cwa_steps_loggrp_name}",
             "log_stream_name": "{instance_id}-steps.log",
             "timezone": "UTC"
-          }
+          },
+          {
+            "file_path": "/var/log/tests.log",
+            "log_group_name": "$${cwa_tests_loggrp_name}",
+            "log_stream_name": "{instance_id}-tests.log",
+            "timezone": "UTC"
+          },
         ]
       }
     },
