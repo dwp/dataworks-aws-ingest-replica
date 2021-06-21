@@ -1,3 +1,7 @@
+locals {
+  pyspark_log_path = "/var/log/adg_incremental_step.log"
+}
+
 resource "aws_s3_bucket_object" "configurations_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.replica_emr_configuration_files_s3_prefix}/configurations.yaml"
@@ -96,7 +100,7 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
   content = templatefile("files/steps/generate_dataset_from_hbase.py",
     {
       dks_decrypt_endpoint      = data.terraform_remote_state.crypto.outputs.dks_endpoint[local.environment]
-      log_path                  = "/var/log/adg_incremental_step.log"
+      log_path                  = local.pyspark_log_path
       incremental_output_bucket = data.terraform_remote_state.common.outputs.published_bucket["id"]
       incremental_output_prefix = "intra-day/"
       collections_secret_name   = "/ingest-replica/collections"
@@ -145,5 +149,6 @@ resource "aws_s3_bucket_object" "cloudwatch_sh" {
       cwa_tests_loggrp_name           = local.cw_agent_tests_lg_name
       emr_release                     = var.emr_release[local.environment]
       aws_default_region              = var.region
+      step_log_path                   = local.pyspark_log_path
   })
 }
