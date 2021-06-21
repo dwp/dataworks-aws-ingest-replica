@@ -143,8 +143,6 @@ meta:
                 echo No cluster exists, nothing to terminate.
               fi
 
-
-
     unit-tests:
       task: unit-tests
       config:
