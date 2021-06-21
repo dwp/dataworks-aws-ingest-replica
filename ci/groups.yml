@@ -12,4 +12,5 @@ groups:
       - update-pipeline
   - name: utility
     jobs:
+      - start-cluster-dev
       - terminate-replica

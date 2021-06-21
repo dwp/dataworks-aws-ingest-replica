@@ -165,6 +165,43 @@ meta:
         params:
           SPARK_LOCAL_HOSTNAME: localhost
 
+    start-cluster:
+      task: start-cluster
+      config:
+        platform: linux
+        image_resource:
+          type: docker-image
+          source:
+            repository: ((dataworks.docker_awscli_repository))
+            version: ((dataworks.docker_awscli_version))
+            tag: ((dataworks.docker_awscli_version))
+        params:
+          AWS_DEFAULT_REGION: ((dataworks.aws_region))
+        run:
+          path: sh
+          args:
+            - -exc
+            - |
+              export AWS_DEFAULT_REGION
+              source /assume-role
+              set +x
+              export topic_arn=arn:aws:sns:${AWS_DEFAULT_REGION}:${AWS_ACC}:hbase_incremental_refresh
+
+              export message_json=$(cat <<EOF
+              {
+                "s3_overrides": null,
+                "overrides": {
+                  "Instances": {"KeepJobFlowAliveWhenNoSteps": true},
+                  "Steps": []
+                },
+                "extend": null,
+                "additional_step_args": null
+              }
+              EOF
+              )
+              echo $message_json
+              aws sns publish --topic-arn "$topic_arn" --message "$message_json"
+
     linting-shell:
       task: linting-shell
       config:
