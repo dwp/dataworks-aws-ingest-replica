@@ -9,9 +9,6 @@ BootstrapActions:
 - Name: "certificate_setup"
   ScriptBootstrapAction:
     Path: "file:/var/ci/certificate_setup.sh"
-- Nmw: "cloudwatch_setup"
-  ScriptBootstrapAction:
-    Path: "file:/var/ci/cloudwatch.sh"
 - Name: "unique_hostname"
   ScriptBootstrapAction:
     Path: "file:/var/ci/set_unique_hostname.sh"

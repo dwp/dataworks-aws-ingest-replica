@@ -1,11 +1,11 @@
 locals {
   cw_agent_collection_interval = 30
-  cw_agent_namespace           = "/app/ingest_replica_incremental"
-  cw_agent_lg_name             = "/app/ingest_replica_incremental"
-  cw_agent_bootstrap_lg_name   = "/app/ingest_replica_incremental/bootstrap_actions"
-  cw_agent_steps_lg_name       = "/app/ingest_replica_incremental/step_logs"
-  cw_agent_yarnspark_lg_name   = "/app/ingest_replica_incremental/yarn-spark_logs"
-  cw_agent_tests_lg_name       = "/app/ingest_replica_incremental/tests_logs"
+  cw_agent_namespace           = "/app/ingest-replica-incremental"
+  cw_agent_lg_name             = "/app/ingest-replica-incremental"
+  cw_agent_bootstrap_lg_name   = "/app/ingest-replica-incremental/bootstrap_actions"
+  cw_agent_steps_lg_name       = "/app/ingest-replica-incremental/step_logs"
+  cw_agent_yarnspark_lg_name   = "/app/ingest-replica-incremental/yarn-spark_logs"
+  cw_agent_tests_lg_name       = "/app/ingest-replica-incremental/tests_logs"
 }
 
 
