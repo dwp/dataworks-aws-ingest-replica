@@ -1,0 +1,8 @@
+jobs:
+  - name: start-cluster-dev
+    plan:
+      - .: (( inject meta.plan.start-cluster))
+        config:
+          params:
+            AWS_ROLE_ARN: arn:aws:iam::((aws_account.development)):role/ci
+            AWS_ACC: ((aws_account.development))
