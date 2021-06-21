@@ -130,3 +130,19 @@ resource "aws_s3_bucket_object" "logging_sh" {
 
   tags = { Name = "logging" }
 }
+
+resource "aws_s3_bucket_object" "cloudwatch_sh" {
+  bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/cloudwatch.sh"
+  context = templatefile("files/bootstrap/cloudwatch.sh",
+    {
+      cwa_metrics_collection_interval = local.cw_agent_collection_interval
+      cwa_namespace                   = local.cw_agent_namespace
+      cwa_log_group_name              = local.cw_agent_lg_name
+      cwa_bootstrap_loggrp_name       = local.cw_agent_bootstrap_lg_name
+      cwa_steps_loggrp_name           = local.cw_agent_steps_lg_name
+      cwa_yarnspark_loggrp_name       = local.cw_agent_yarnspark_lg_name
+      cwa_tests_loggrp_name           = local.cw_agent_tests_lg_name
+      emr_release                     = var.emr_release[local.environment]
+  })
+}
