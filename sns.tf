@@ -4,7 +4,7 @@ resource "aws_sns_topic" "hbase_incremental_refresh_sns" {
   tags = { Name = "hbase_incremental_refresh" }
 }
 
-resource "aws_sns_topic_policy" "export_status_sns_fulls" {
+resource "aws_sns_topic_policy" "ingest_replica_trigger" {
   arn    = aws_sns_topic.hbase_incremental_refresh_sns.arn
   policy = data.aws_iam_policy_document.ingest_replica_refresh.json
 }
@@ -13,8 +13,6 @@ data "aws_iam_policy_document" "ingest_replica_refresh" {
   policy_id = "ingest-replica-sns-trigger-policy"
 
   statement {
-    sid = "DefaultPolicy"
-
     actions = [
       "SNS:GetTopicAttributes",
       "SNS:SetTopicAttributes",
