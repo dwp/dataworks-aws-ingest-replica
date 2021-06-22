@@ -1,3 +1,7 @@
+locals {
+  pyspark_log_path = "/var/log/adg_incremental_step.log"
+}
+
 resource "aws_s3_bucket_object" "configurations_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.replica_emr_configuration_files_s3_prefix}/configurations.yaml"
@@ -32,6 +36,7 @@ resource "aws_s3_bucket_object" "cluster_yaml" {
   content = templatefile("files/emr-config/cluster.yaml.tpl",
     {
       ami_id                 = var.emr_al2_ami_id
+      emr_release            = var.emr_release[local.environment]
       s3_log_bucket          = data.terraform_remote_state.security-tools.outputs.logstore_bucket["id"]
       s3_log_prefix          = aws_s3_bucket_object.emr_logs_folder.id
       emr_cluster_name       = local.emr_cluster_name
@@ -95,11 +100,11 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
   content = templatefile("files/steps/generate_dataset_from_hbase.py",
     {
       dks_decrypt_endpoint      = data.terraform_remote_state.crypto.outputs.dks_endpoint[local.environment]
-      log_path                  = "/var/log/adg_incremental_step.log"
+      log_path                  = local.pyspark_log_path
       incremental_output_bucket = data.terraform_remote_state.common.outputs.published_bucket["id"]
       incremental_output_prefix = "intra-day/"
       collections_secret_name   = "/ingest-replica/collections"
-      job_status_table_name = aws_dynamodb_table.job_status.name
+      job_status_table_name     = aws_dynamodb_table.job_status.name
   })
 
   tags = { Name = "emr-step-generate-dataset-from-hbase" }
@@ -128,4 +133,22 @@ resource "aws_s3_bucket_object" "logging_sh" {
   content = file("files/bootstrap/logging.sh")
 
   tags = { Name = "logging" }
+}
+
+resource "aws_s3_bucket_object" "cloudwatch_sh" {
+  bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key    = "${local.replica_emr_bootstrap_scripts_s3_prefix}/cloudwatch.sh"
+  content = templatefile("files/bootstrap/cloudwatch.sh",
+    {
+      cwa_metrics_collection_interval = local.cw_agent_collection_interval
+      cwa_namespace                   = local.cw_agent_namespace
+      cwa_log_group_name              = local.cw_agent_lg_name
+      cwa_bootstrap_loggrp_name       = local.cw_agent_bootstrap_lg_name
+      cwa_steps_loggrp_name           = local.cw_agent_steps_lg_name
+      cwa_yarnspark_loggrp_name       = local.cw_agent_yarnspark_lg_name
+      cwa_tests_loggrp_name           = local.cw_agent_tests_lg_name
+      emr_release                     = var.emr_release[local.environment]
+      aws_default_region              = var.region
+      step_log_path                   = local.pyspark_log_path
+  })
 }

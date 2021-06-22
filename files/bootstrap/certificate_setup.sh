@@ -4,7 +4,7 @@ sudo mkdir -p /opt/emr
 sudo mkdir -p /var/log/acm
 sudo mkdir -p /var/log/cdl
 sudo mkdir -p /var/log/hdl
-sudo mkdir -p /var/log/installer
+sudo mkdir -p /var/log/emr-bootstrap
 sudo chown hadoop:hadoop /opt/emr
 sudo chown hadoop:hadoop /var/log/acm
 sudo chown hadoop:hadoop /var/log/cdl
@@ -87,4 +87,4 @@ done
 
 echo "Completed the certificate-setup.sh step of the EMR Cluster"
 
-) >> /var/log/acm/nohup.log 2>&1
+) >> /var/log/emr-bootstrap/acm-cert-retriever.log 2>&1

@@ -6,7 +6,7 @@ CustomAmiId: "${ami_id}"
 EbsRootVolumeSize: 40
 LogUri: "s3://${s3_log_bucket}/${s3_log_prefix}"
 Name: "${emr_cluster_name}"
-ReleaseLabel: "emr-5.30.1"
+ReleaseLabel: "emr-${emr_release}"
 SecurityConfiguration: "${security_configuration}"
 ScaleDownBehavior: "${scale_down_behaviour}"
 ServiceRole: "${service_role}"

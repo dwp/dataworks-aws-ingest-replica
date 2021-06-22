@@ -83,6 +83,7 @@ def get_parameters():
     parser.add_argument("--collections", type=str, nargs="+")
     parser.add_argument("--start_time", default=0, type=int)
     parser.add_argument("--end_time", default=None, type=int)
+    parser.add_argument("--log_path", default=LOG_PATH, type=str)
     parser.set_defaults(dry_run=False)
     args, unrecognized_args = parser.parse_known_args()
 

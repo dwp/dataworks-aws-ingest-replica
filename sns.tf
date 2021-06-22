@@ -4,38 +4,48 @@ resource "aws_sns_topic" "hbase_incremental_refresh_sns" {
   tags = { Name = "hbase_incremental_refresh" }
 }
 
-resource "aws_sns_topic_policy" "hbase_incremental_refresh_topic_policy" {
-  arn = aws_sns_topic.hbase_incremental_refresh_sns.arn
+resource "aws_sns_topic_policy" "export_status_sns_fulls" {
+  arn    = aws_sns_topic.hbase_incremental_refresh_sns.arn
+  policy = data.aws_iam_policy_document.ingest_replica_refresh.json
+}
 
-  policy = jsonencode({
-    "Version" : "2012-10-17",
-    "Id" : "hbase_incremental_refresh_ID",
-    "Statement" : [
-      {
-        Sid : "DisableCrossAccountAccess",
-        Effect : "Allow",
-        Principal : {
-          "AWS" : "*"
-        },
-        Action : [
-          "SNS:GetTopicAttributes",
-          "SNS:SetTopicAttributes",
-          "SNS:AddPermission",
-          "SNS:RemovePermission",
-          "SNS:DeleteTopic",
-          "SNS:Subscribe",
-          "SNS:ListSubscriptionsByTopic",
-          "SNS:Publish",
-          "SNS:Receive"
-        ],
-        Resource : aws_sns_topic.hbase_incremental_refresh_sns.arn,
-        Condition : {
-          "StringEquals" : {
-            "AWS:SourceOwner" : local.account[local.environment]
-          }
-        }
-      }
+data "aws_iam_policy_document" "ingest_replica_refresh" {
+  policy_id = "ingest-replica-sns-trigger-policy"
+
+  statement {
+    sid = "DefaultPolicy"
+
+    actions = [
+      "SNS:GetTopicAttributes",
+      "SNS:SetTopicAttributes",
+      "SNS:AddPermission",
+      "SNS:RemovePermission",
+      "SNS:DeleteTopic",
+      "SNS:Subscribe",
+      "SNS:ListSubscriptionsByTopic",
+      "SNS:Publish",
+      "SNS:Receive",
     ]
-  })
+
+    condition {
+      test     = "StringEquals"
+      variable = "AWS:SourceOwner"
+
+      values = [
+        local.account[local.environment],
+      ]
+    }
+
+    effect = "Allow"
+
+    principals {
+      type        = "AWS"
+      identifiers = ["*"]
+    }
+
+    resources = [
+      aws_sns_topic.hbase_incremental_refresh_sns.arn,
+    ]
+  }
 }
 

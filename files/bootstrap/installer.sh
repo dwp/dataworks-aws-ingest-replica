@@ -9,9 +9,9 @@ export HTTPS_PROXY="$FULL_PROXY"
 export no_proxy="$FULL_NO_PROXY"
 export NO_PROXY="$FULL_NO_PROXY"
 
-if [ ! -d "/var/log/installer" ]; then
-  sudo mkdir -p /var/log/installer
-  sudo chown hadoop:hadoop /var/log/installer
+if [ ! -d "/var/log/emr-bootstrap" ]; then
+  sudo mkdir -p /var/log/emr-bootstrap
+  sudo chown hadoop:hadoop /var/log/emr-bootstrap
 fi
 
 PIP=/usr/local/bin/pip3
@@ -28,17 +28,19 @@ fi
 
 if [ ! -x $PIP ]; then
   # PIP not found
-  echo "pip3 not found" >> /var/log/installer/installer.log 2>&1
+  echo "pip3 not found" >> /var/log/emr-bootstrap/installer.log 2>&1
   exit 1
 fi
 
+sudo /var/ci/cloudwatch.sh
+
 #shellcheck disable=SC2024
-sudo -E $PIP install boto3 >> /var/log/installer/install-boto3.log 2>&1
+sudo -E $PIP install boto3 >> /var/log/emr-bootstrap/install-boto3.log 2>&1
 #shellcheck disable=SC2024
-sudo -E $PIP install requests >> /var/log/installer/install-requests.log 2>&1
+sudo -E $PIP install requests >> /var/log/emr-bootstrap/install-requests.log 2>&1
 #shellcheck disable=SC2024
 {
   sudo yum install -y python3-devel
   sudo -E $PIP install pycryptodome
   sudo yum remove -y python3-devel
-} >> /var/log/installer/install-pycrypto.log 2>&1
+} >> /var/log/emr-bootstrap/install-pycrypto.log 2>&1
