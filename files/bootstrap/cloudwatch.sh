@@ -3,6 +3,7 @@
 set -Eeuo pipefail
 # shellcheck disable=SC2034
 # shellcheck disable=SC1083
+# shellcheck disable=SC2288
 (
 collection_interval="${cwa_metrics_collection_interval}"
 namespace="${cwa_namespace}"
