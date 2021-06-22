@@ -10,9 +10,10 @@ resource "aws_sns_topic_policy" "ingest_replica_trigger" {
 }
 
 data "aws_iam_policy_document" "ingest_replica_refresh" {
-  policy_id = "ingest-replica-sns-trigger-policy"
+  policy_id = "__default_policy_ID"
 
   statement {
+    sid = "__default_statement_ID"
     actions = [
       "SNS:GetTopicAttributes",
       "SNS:SetTopicAttributes",
@@ -46,4 +47,3 @@ data "aws_iam_policy_document" "ingest_replica_refresh" {
     ]
   }
 }
-
