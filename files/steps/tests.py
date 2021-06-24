@@ -20,6 +20,7 @@ test_encryptionkey = "9IGlYTqyhBVKZBav1uROVA=="
 test_message = json.dumps(
     {
         "message": {
+            "_id": """{"id_type}: "abcde-fghij-klmno-pqrst\"""",
             "encryption": {
                 "initialisationVector": "value1",
                 "encryptedEncryptionKey": "value2",
@@ -27,10 +28,15 @@ test_message = json.dumps(
             },
             "dbObject": '{"key_encrypted": "value_encrypted"}',
         }
-    }
+    }, sort_keys=True
 )
 expected_message = json.dumps(
-    {"message": {"dbObject": {"key_decrypted": "value_decrypted"}}}
+    {
+        "message": {
+            "_id": """{"id_type}: "abcde-fghij-klmno-pqrst\"""",
+            "dbObject": {"key_decrypted": "value_decrypted"},
+        },
+    }, sort_keys=True
 )
 
 
@@ -63,7 +69,7 @@ class TestCrypto(unittest.TestCase):
         "generate_dataset_from_hbase.decrypt_ciphertext", mock_decrypt_ciphertext
     )
     def test_decrypt_message(self):
-        self.assertEqual(expected_message, decrypt_message(test_message))
+        self.assertEqual(expected_message, decrypt_message(test_message)[1])
 
 
 class TestSparkFunctions(unittest.TestCase):
@@ -94,7 +100,7 @@ class TestSparkFunctions(unittest.TestCase):
             self.assertEqual(list_to_csv_str(i[0]), i[1])
 
     @mock.patch("generate_dataset_from_hbase.record_count")
-    @mock.patch("generate_dataset_from_hbase.decrypt_message", lambda x: x)
+    @mock.patch("generate_dataset_from_hbase.decrypt_message", lambda x: ("<id>", x))
     def test_process_record(self, mock_record_count):
         mock_record_count.add = lambda x: None
         input_record = (
