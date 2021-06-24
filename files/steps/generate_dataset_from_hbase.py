@@ -201,6 +201,7 @@ def decrypt_ciphertext(ciphertext, key, iv):
 def decrypt_message(item):
     """Find and decrypt dbObject, Return full message."""
     json_item = json.loads(item)
+    record_id = json_item["message"]["_id"]
     iv = json_item["message"]["encryption"]["initialisationVector"]
     cek = json_item["message"]["encryption"]["encryptedEncryptionKey"]
     kek = json_item["message"]["encryption"]["keyEncryptionKeyId"]
@@ -214,7 +215,7 @@ def decrypt_message(item):
     decrypted_obj = decrypt_ciphertext(db_obj, plaintext_key, iv)
     json_item["message"]["dbObject"] = json.loads(decrypted_obj)
     del json_item["message"]["encryption"]
-    return json.dumps(json_item)
+    return record_id, json.dumps(json_item)
 
 
 def filter_rows(x):
@@ -227,9 +228,8 @@ def filter_rows(x):
 def process_record(x):
     global record_count
     y = [str.strip(i) for i in re.split(r" *column=|, *timestamp=|, *value=", x)]
-    record_id = y[0]
     timestamp = y[2]
-    record = decrypt_message(y[3])
+    record_id, record = decrypt_message(y[3])
     record_count.add(1)
     return [record_id, timestamp, record]
 
