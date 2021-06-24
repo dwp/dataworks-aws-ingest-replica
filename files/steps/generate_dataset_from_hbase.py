@@ -34,6 +34,7 @@ INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 
 JOB_STATUS_TABLE = "${job_status_table_name}"
 COLLECTIONS_SECRET_NAME = "${collections_secret_name}"
+DATABASE_NAME = "intraday"
 
 LOG_PATH = "${log_path}"
 dks_cache = {}
@@ -85,8 +86,12 @@ def get_parameters():
     parser.add_argument("--end_time", default=None, type=int)
     parser.add_argument("--log_path", default=LOG_PATH, type=str)
     parser.set_defaults(dry_run=False)
+    parser.set_defaults(test=False)
     args, unrecognized_args = parser.parse_known_args()
 
+    if args.test is True:
+        global DATABASE_NAME
+        DATABASE_NAME += "_tests"
     return args
 
 
