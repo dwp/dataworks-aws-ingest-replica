@@ -14,6 +14,7 @@ import logging
 import os
 import re
 import sys
+import botocore.config
 import time
 
 import requests
@@ -34,6 +35,7 @@ INCREMENTAL_OUTPUT_PREFIX = "${incremental_output_prefix}"
 
 JOB_STATUS_TABLE = "${job_status_table_name}"
 COLLECTIONS_SECRET_NAME = "${collections_secret_name}"
+DATABASE_NAME = "intraday"
 
 LOG_PATH = "${log_path}"
 dks_cache = {}
@@ -72,6 +74,7 @@ def get_parameters():
     )
     # Parse command line inputs and set defaults
     parser.add_argument("-d", "--dry_run", dest="dry_run", action="store_true")
+    parser.add_argument("-e", "--test", dest="test", action="store_true")
     parser.add_argument("--correlation_id", default="0", type=str)
     parser.add_argument("--triggered_time", default=0, type=int)
     parser.add_argument(
@@ -82,36 +85,104 @@ def get_parameters():
     )
     parser.add_argument("--collections", type=str, nargs="+")
     parser.add_argument("--start_time", default=0, type=int)
-    parser.add_argument("--end_time", default=None, type=int)
+    parser.add_argument(
+        "--end_time", default=round(time.time() * 1000) - (5 * 60 * 1000), type=int
+    )
     parser.add_argument("--log_path", default=LOG_PATH, type=str)
     parser.set_defaults(dry_run=False)
+    parser.set_defaults(test=False)
     args, unrecognized_args = parser.parse_known_args()
 
+    if args.test is True:
+        global DATABASE_NAME
+        DATABASE_NAME += "_tests"
     return args
 
 
-def update_db_item(table, correlation_id: str, triggered_time: int, values: dict):
-    if correlation_id is None or correlation_id in ["0", ""]:
+def get_s3_client():
+    """Return S3 client"""
+    client_config = botocore.config.Config(
+        max_pool_connections=100, retries={"max_attempts": 10, "mode": "standard"}
+    )
+    client = boto3.client("s3", config=client_config)
+    return client
+
+
+def update_db_item(table, args, values: dict):
+    """Update dynamo_db with supplied values.  Ignore if --test arg present
+    or correlation_id is not properly generated"""
+    if any(
+        [
+            args.test is True,
+            args.correlation_id is None,
+            args.correlation_id in ["0", ""],
+        ]
+    ):
         return
 
     updates = {key: {"Value": value} for key, value in values.items()}
     table.update_item(
         Key={
-            "CorrelationId": correlation_id,
-            "TriggeredTime": triggered_time,
+            "CorrelationId": args.correlation_id,
+            "TriggeredTime": args.triggered_time,
         },
         AttributeUpdates=updates,
     )
 
 
-def get_collections(collections_secret_name):
+def get_collections(args):
+    """Get collections and required information either from args, or from AWS Secrets"""
+    timestamp_folder = datetime.datetime.fromtimestamp(args.end_time / 1000.0).strftime(
+        "%Y%m%d-%H%M"
+    )
+    if args.collections:
+        # Assume PII, parse table/db names for tags
+        collections = [
+            {
+                "hbase_table": collection,
+                "hive_table": collection.replace(":", "_"),
+                "tags": {
+                    "pii": "true",
+                    "db": collection.split(":")[0],
+                    "table": collection.split(":")[1],
+                },
+            }
+            for collection in args.collections
+        ]
+    else:
+        collections = get_collections_from_aws(COLLECTIONS_SECRET_NAME)
+
+    for collection in collections:
+        collection.update(
+            {
+                "output_bucket": args.output_s3_bucket,
+                "output_root_prefix": args.output_s3_prefix,
+                "collection_output_prefix": os.path.join(
+                    args.output_s3_prefix, collection["hive_table"]
+                ),
+                "full_output_prefix": os.path.join(
+                    args.output_s3_prefix, collection["hive_table"], timestamp_folder
+                ),
+            }
+        )
+
+    return collections
+
+
+def get_collections_from_aws(collections_secret_name):
+    """Parse collections returned by AWS Secrets Manager"""
     return [
-        f"{j['db']}:{j['table']}"
+        {
+            "hbase_table": f"{j['db']}:{j['table']}",
+            "hive_table": f"{j['db']}_{j['table']}",
+            "tags": j,
+        }
         for j in retrieve_secrets(collections_secret_name)["collections_all"].values()
     ]
 
 
 def retrieve_secrets(secret_name):
+    """Get b64 encoded secrets from AWS Secrets Manager"""
     session = boto3.session.Session()
     client = session.client(service_name="secretsmanager")
     response = client.get_secret_value(SecretId=secret_name)
@@ -201,6 +272,7 @@ def decrypt_ciphertext(ciphertext, key, iv):
 def decrypt_message(item):
     """Find and decrypt dbObject, Return full message."""
     json_item = json.loads(item)
+    record_id = json_item["message"]["_id"]
     iv = json_item["message"]["encryption"]["initialisationVector"]
     cek = json_item["message"]["encryption"]["encryptedEncryptionKey"]
     kek = json_item["message"]["encryption"]["keyEncryptionKeyId"]
@@ -214,7 +286,7 @@ def decrypt_message(item):
     decrypted_obj = decrypt_ciphertext(db_obj, plaintext_key, iv)
     json_item["message"]["dbObject"] = json.loads(decrypted_obj)
     del json_item["message"]["encryption"]
-    return json.dumps(json_item)
+    return record_id, json.dumps(json_item)
 
 
 def filter_rows(x):
@@ -227,9 +299,8 @@ def filter_rows(x):
 def process_record(x):
     global record_count
     y = [str.strip(i) for i in re.split(r" *column=|, *timestamp=|, *value=", x)]
-    record_id = y[0]
     timestamp = y[2]
-    record = decrypt_message(y[3])
+    record_id, record = decrypt_message(y[3])
     record_count.add(1)
     return [record_id, timestamp, record]
 
@@ -241,11 +312,16 @@ def list_to_csv_str(x):
 
 
 def process_collection(
-    collection, spark, start_time, end_time, output_root_path, business_date_hour
+    collection,
+    spark,
+    args,
 ):
     """Extract collection from hbase, decrypt, put in S3."""
-    hbase_table_name = collection
-    hive_table_name = collection.replace(":", "_")
+    hbase_table_name = collection["hbase_table"]
+    hive_table_name = collection["hive_table"]
+    start_time = args.start_time
+    end_time = args.end_time
+
     hbase_commands = (
         f"refresh_hfiles '{hbase_table_name}' \n"
         + f"scan '{hbase_table_name}', {{TIMERANGE => [{start_time}, {end_time}]}}"
@@ -263,55 +339,94 @@ def process_collection(
         .map(process_record)
         .map(list_to_csv_str)
     )
-
-    s3_collection_dir = os.path.join(output_root_path, hive_table_name)
-    final_output_dir = os.path.join(s3_collection_dir, business_date_hour) + "/"
-    rdd.saveAsTextFile(final_output_dir)
-    return hive_table_name, s3_collection_dir
-
-
-def create_hive_table(collection_tuple):
-    table_name, s3_path = collection_tuple
-    drop_table = f"drop table if exists {table_name}"
-    create_table = (
-        f"create external table if not exists {table_name} "
-        + "(id string, record_timestamp bigint, record string) "
-        + "ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'"
-        + "    WITH SERDEPROPERTIES ( "
-        + '    "separatorChar" = ",",'
-        + '    "quoteChar"     = "\\""'
-        + "           )"
-        + f'stored as textfile location "{s3_path}"'
+    rdd.saveAsTextFile(
+        "s3://"
+        + os.path.join(
+            collection["output_bucket"],
+            collection["full_output_prefix"],
+        ),
+        compressionCodecClass="com.hadoop.compression.lzo.LzopCodec",
     )
-    spark.sql(drop_table)
-    spark.sql(create_table)
+    return collection
 
-    drop_view = f"drop view if exists v_{table_name}_latest"
+
+def create_hive_table(collection):
+    """Create hive table + 'latest' view over data in s3"""
+    hive_table = collection["hive_table"]
+    s3_path = "s3://" + os.path.join(
+        collection["output_bucket"],
+        collection["collection_output_prefix"],
+    )
+
+    # sql to ensure db exists
+    create_db = f"create database if not exists {DATABASE_NAME}"
+
+    # sql for creating table over s3 data
+    drop_table = f"drop table if exists {DATABASE_NAME}.{hive_table}"
+    create_table = f"""
+    create external table if not exists {DATABASE_NAME}.{hive_table}
+        (id string, record_timestamp string, record string)
+        ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
+           WITH SERDEPROPERTIES ( 
+           "separatorChar" = ",",
+           "quoteChar"     = "\\""
+                  )
+        stored as textfile location "{s3_path}"
+    """
+
+    drop_view = f"drop view if exists {DATABASE_NAME}.v_{hive_table}_latest"
     create_view = f"""
-                    create view v_{table_name}_latest as with ranked as (
-                    select id, record_timestamp, record, row_number() over
-                    (partition by id order by id desc, record_timestamp desc) RANK
-                    from {table_name})
-                    select id, record_timestamp, record from ranked where RANK = 1
-                    """
-    spark.sql(drop_view)
+        create view {DATABASE_NAME}.v_{hive_table}_latest as with ranked as (
+        select  id,
+                record_timestamp,
+                record, 
+                row_number() over (
+                    partition by id 
+                    order by id desc, cast(record_timestamp as bigint) desc
+                ) RANK
+        from {DATABASE_NAME}.{hive_table})
+        select id, record_timestamp, record from ranked where RANK = 1
+        """
+
+    spark.sql(create_db)
+    try:
+        spark.sql(drop_view)
+        spark.sql(drop_table)
+    except Exception as e:
+        _logger.error(e)
+    spark.sql(create_table)
     spark.sql(create_view)
 
 
-def main(spark, args, output_root_path, business_date_hour):
-    replica_metadata_refresh()
+def tag_s3_objects(s3_client, collection):
+    _logger.info(f"{collection['hive_table']}: tagging files")
+    i = 0
+    aws_format_tags = [
+        {"Key": key, "Value": value} for key, value in collection["tags"].items()
+    ]
 
+    for key in s3_client.list_objects(
+        Bucket=collection["output_bucket"], Prefix=collection["full_output_prefix"]
+    )["Contents"]:
+        s3_client.put_object_tagging(
+            Bucket=collection["output_bucket"],
+            Key=key["Key"],
+            Tagging={"TagSet": aws_format_tags},
+        )
+        i += 1
+    _logger.info(f"{collection['hive_table']}: tagging complete, {i} objects")
+
+
+def main(spark, args, collections, s3_client):
+    replica_metadata_refresh()
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
-            all_collections = list(
+            processed_collections = list(
                 executor.map(
                     process_collection,
-                    args.collections,
+                    collections,
                     itertools.repeat(spark),
-                    itertools.repeat(args.start_time),
-                    itertools.repeat(args.end_time),
-                    itertools.repeat(output_root_path),
-                    itertools.repeat(business_date_hour),
+                    itertools.repeat(args),
                 )
             )
     except Exception as e:
@@ -320,7 +435,15 @@ def main(spark, args, output_root_path, business_date_hour):
 
     # create Hive tables
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        executor.map(create_hive_table, list(all_collections))
+        _ = list(executor.map(create_hive_table, list(processed_collections)))
+
+    # tag files
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        _ = list(
+            executor.map(
+                tag_s3_objects, itertools.repeat(s3_client), processed_collections
+            )
+        )
 
 
 if __name__ == "__main__":
@@ -333,58 +456,50 @@ if __name__ == "__main__":
     args = get_parameters()
 
     if args.dry_run is True:
-        # Dry run flag, quit
         _logger.warning("Dry Run Flag (-d, --dry-run) set, exiting with success status")
         _logger.warning("0 rows processed")
         exit(0)
 
-    if not args.collections:
-        args.collections = get_collections(COLLECTIONS_SECRET_NAME)
-        if len(args.collections) == 0:
-            _logger.warning("No collections to process, exiting")
-            _logger.warning("0 rows processed")
-            exit(0)
-
-    if not args.end_time:
-        args.end_time = round(time.time() * 1000) - (5 * 60 * 1000)
+    collections = get_collections(args=args)
+    if len(collections) == 0:
+        _logger.warning("No collections to process, exiting")
+        _logger.warning("0 rows processed")
+        exit(0)
 
     dynamodb = boto3.resource("dynamodb")
     job_table = dynamodb.Table(JOB_STATUS_TABLE)
+    s3_client = get_s3_client()
 
-    output_root_path = f"s3://{args.output_s3_bucket}/{args.output_s3_prefix}"
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
-    # Set Accumulators
     dks_count = spark.sparkContext.accumulator(0)
     record_count = spark.sparkContext.accumulator(0)
 
-    business_date_hour = datetime.datetime.fromtimestamp(
-        args.end_time / 1000.0
-    ).strftime("%Y%m%d-%H%M")
-
     update_db_item(
         job_table,
-        args.correlation_id,
-        args.triggered_time,
-        {"JobStatus": "PROCESSING",
-         "EMRReadyTime": round(time.time() * 1000),
-         "ProcessedDataEnd": int(args.end_time),
-         "ProcessedDataStart": int(args.start_time)},
+        args,
+        {
+            "JobStatus": "PROCESSING",
+            "EMRReadyTime": round(time.time() * 1000),
+            "ProcessedDataEnd": int(args.end_time),
+            "ProcessedDataStart": int(args.start_time),
+        },
     )
     perf_start = time.perf_counter()
+
     try:
-        main(spark, args, output_root_path, business_date_hour)
-        update_db_item(table=job_table,
-                       correlation_id=args.correlation_id,
-                       triggered_time=args.triggered_time,
-                       values={"JobStatus": "COMPLETED"})
-    except Exception:
+        main(spark=spark, args=args, collections=collections, s3_client=s3_client)
+        update_db_item(
+            table=job_table,
+            args=args,
+            values={"JobStatus": "COMPLETED"},
+        )
+    except Exception as e:
         update_db_item(
             job_table,
-            args.correlation_id,
-            args.triggered_time,
+            args,
             {"JobStatus": "EMR_FAILED"},
         )
-        raise
+        raise e
     perf_end = time.perf_counter()
 
     total_time = round(perf_end - perf_start)
