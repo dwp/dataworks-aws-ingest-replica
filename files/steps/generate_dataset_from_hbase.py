@@ -435,17 +435,15 @@ def main(spark, args, collections, s3_client):
 
     # create Hive tables
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        result = executor.map(create_hive_table, list(processed_collections))
-        for i in result:
-            print(i)
+        _ = list(executor.map(create_hive_table, list(processed_collections)))
 
     # tag files
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        result = executor.map(
-            tag_s3_objects, itertools.repeat(s3_client), processed_collections
+        _ = list(
+            executor.map(
+                tag_s3_objects, itertools.repeat(s3_client), processed_collections
+            )
         )
-        for i in result:
-            print(i)
 
 
 if __name__ == "__main__":
