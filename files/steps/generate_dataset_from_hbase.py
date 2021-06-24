@@ -73,6 +73,7 @@ def get_parameters():
     )
     # Parse command line inputs and set defaults
     parser.add_argument("-d", "--dry_run", dest="dry_run", action="store_true")
+    parser.add_argument("-e", "--test", dest="test", action="store_true")
     parser.add_argument("--correlation_id", default="0", type=str)
     parser.add_argument("--triggered_time", default=0, type=int)
     parser.add_argument(
@@ -83,7 +84,7 @@ def get_parameters():
     )
     parser.add_argument("--collections", type=str, nargs="+")
     parser.add_argument("--start_time", default=0, type=int)
-    parser.add_argument("--end_time", default=None, type=int)
+    parser.add_argument("--end_time", default=round(time.time() * 1000) - (5 * 60 * 1000), type=int)
     parser.add_argument("--log_path", default=LOG_PATH, type=str)
     parser.set_defaults(dry_run=False)
     parser.set_defaults(test=False)
