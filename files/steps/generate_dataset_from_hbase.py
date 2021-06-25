@@ -232,10 +232,10 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
 
 
 def get_plaintext_key(url, kek, cek):
-    plaintext_key = dks_cache.get(kek)
+    plaintext_key = dks_cache.get(cek)
     if not plaintext_key:
         plaintext_key = get_key_from_dks(url, kek, cek)
-        dks_cache[kek] = plaintext_key
+        dks_cache[cek] = plaintext_key
     return plaintext_key
 
 
