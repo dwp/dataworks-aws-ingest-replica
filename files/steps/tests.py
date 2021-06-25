@@ -1,7 +1,15 @@
 import json
 import unittest
 from unittest import mock
-
+from test_tools import (
+    dks_test_data,
+    GetCollectionArgs,
+    mock_get_key_from_dks,
+    mock_get_plaintext_key,
+    mock_get_aws_collections,
+    mock_retrieve_secrets,
+    mock_decrypt_ciphertext,
+)
 
 from generate_dataset_from_hbase import (
     filter_rows,
@@ -11,67 +19,40 @@ from generate_dataset_from_hbase import (
     decrypt_ciphertext,
     decrypt_message,
     encrypt_plaintext,
+    get_collections,
+    get_collections_from_aws,
 )
-
-test_plaintext = "12b1a332-5b46-4ad7-bd98-6f8deea3ecb7"
-test_ciphertext = "ZLDdPh9IXexOzCztXNtC/uFASJVFU+RhIzu7/x8DzUmenZlO"
-test_iv = "vtA/hDISUq2BacN2iklB8g=="
-test_encryptionkey = "9IGlYTqyhBVKZBav1uROVA=="
-test_message = json.dumps(
-    {
-        "message": {
-            "_id": """{"id_type}: "abcde-fghij-klmno-pqrst\"""",
-            "encryption": {
-                "initialisationVector": "value1",
-                "encryptedEncryptionKey": "value2",
-                "keyEncryptionKeyId": "value3",
-            },
-            "dbObject": '{"key_encrypted": "value_encrypted"}',
-        }
-    },
-    sort_keys=True,
-)
-expected_message = json.dumps(
-    {
-        "message": {
-            "_id": """{"id_type}: "abcde-fghij-klmno-pqrst\"""",
-            "dbObject": {"key_decrypted": "value_decrypted"},
-        },
-    },
-    sort_keys=True,
-)
-
-
-def mock_decrypt_ciphertext(ciphertext, *args, **kwargs):
-    return ciphertext.replace("encrypted", "decrypted")
-
-
-def mock_get_plaintext_key(*args, **kwargs):
-    return "<plaintext_key>"
 
 
 class TestCrypto(unittest.TestCase):
     def test_encrypt_plaintext(self):
         output_ciphertext, output_iv = encrypt_plaintext(
-            test_encryptionkey, test_plaintext, test_iv
+            dks_test_data["test_encryptionkey"],
+            dks_test_data["test_plaintext"],
+            dks_test_data["test_iv"],
         )
 
-        self.assertEqual(test_ciphertext, output_ciphertext)
-        self.assertEqual(test_iv, output_iv)
+        self.assertEqual(dks_test_data["test_ciphertext"], output_ciphertext)
+        self.assertEqual(dks_test_data["test_iv"], output_iv)
 
     def test_decrypt_ciphertext(self):
         output_plaintext = decrypt_ciphertext(
-            test_ciphertext, test_encryptionkey, test_iv
+            dks_test_data["test_ciphertext"],
+            dks_test_data["test_encryptionkey"],
+            dks_test_data["test_iv"],
         )
 
-        self.assertEqual(test_plaintext, output_plaintext)
+        self.assertEqual(dks_test_data["test_plaintext"], output_plaintext)
 
     @mock.patch("generate_dataset_from_hbase.get_plaintext_key", mock_get_plaintext_key)
     @mock.patch(
         "generate_dataset_from_hbase.decrypt_ciphertext", mock_decrypt_ciphertext
     )
     def test_decrypt_message(self):
-        self.assertEqual(expected_message, decrypt_message(test_message)[1])
+        self.assertEqual(
+            dks_test_data["expected_message"],
+            decrypt_message(dks_test_data["test_message"])[1],
+        )
 
 
 class TestSparkFunctions(unittest.TestCase):
@@ -116,10 +97,6 @@ class TestSparkFunctions(unittest.TestCase):
         self.assertEqual(output[2], "<recordvalue>")
 
 
-def mock_get_key_from_dks(url, kek, cek, **kwargs):
-    return cek.replace("ciphertext", "plaintext")
-
-
 class TestDksCache(unittest.TestCase):
     @mock.patch(
         "generate_dataset_from_hbase.get_key_from_dks",
@@ -134,6 +111,50 @@ class TestDksCache(unittest.TestCase):
 
         # assert one call to 'dks' per key
         self.assertEqual(post_mock.call_count, len(ceks))
+
+
+class TestCollections(unittest.TestCase):
+    def collections_test(self, collections, collections_output):
+        for collection in collections:
+            config = None
+            for item in collections_output:
+                if item["hbase_table"] == collection:
+                    config = item
+            self.assertIsNotNone(config)
+
+            # assert config structure
+            self.assertIn("hive_table", config)
+            self.assertIn("tags", config)
+            # assert tags structure
+            self.assertIn("db", config["tags"])
+            self.assertIn("table", config["tags"])
+            self.assertIn("pii", config["tags"])
+
+    def test_get_collections_with_args(self):
+        args = GetCollectionArgs()
+        args.collections = ["db1:collection1", "db2:collection2"]
+        collections_output = get_collections(args)
+        self.collections_test(args.collections, collections_output)
+
+    @mock.patch(
+        "generate_dataset_from_hbase.get_collections_from_aws", mock_get_aws_collections
+    )
+    def test_get_collections_without_args(self):
+        args = GetCollectionArgs()
+        collections_output = get_collections(args)
+        collections_list = [i["hbase_table"] for i in mock_get_aws_collections()]
+        self.collections_test(collections_list, collections_output)
+
+    @mock.patch("generate_dataset_from_hbase.retrieve_secrets", mock_retrieve_secrets)
+    def test_secrets_parsing(self):
+        collections = get_collections_from_aws("fake_secret_name")
+        for collection in collections:
+            self.assertIn("hbase_table", collection)
+            self.assertIn("hive_table", collection)
+            self.assertIn("tags", collection)
+            self.assertIn("pii", collection["tags"])
+            self.assertIn("table", collection["tags"])
+            self.assertIn("db", collection["tags"])
 
 
 if __name__ == "__main__":
