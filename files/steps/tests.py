@@ -28,7 +28,8 @@ test_message = json.dumps(
             },
             "dbObject": '{"key_encrypted": "value_encrypted"}',
         }
-    }, sort_keys=True
+    },
+    sort_keys=True,
 )
 expected_message = json.dumps(
     {
@@ -36,7 +37,8 @@ expected_message = json.dumps(
             "_id": """{"id_type}: "abcde-fghij-klmno-pqrst\"""",
             "dbObject": {"key_decrypted": "value_decrypted"},
         },
-    }, sort_keys=True
+    },
+    sort_keys=True,
 )
 
 
@@ -115,7 +117,7 @@ class TestSparkFunctions(unittest.TestCase):
 
 
 def mock_get_key_from_dks(url, kek, cek, **kwargs):
-    return "kek"
+    return cek.replace("ciphertext", "plaintext")
 
 
 class TestDksCache(unittest.TestCase):
@@ -124,13 +126,14 @@ class TestDksCache(unittest.TestCase):
         side_effect=mock_get_key_from_dks,
     )
     def test_dks_cache(self, post_mock):
-        key_id = "abcd"
-        key_text = "key_string"
-        url = "https://dummy"
-        for _ in range(1, 5):
-            get_plaintext_key(url, key_id, key_text)
+        ceks = ["key1_ciphertext", "key2_ciphertext", "key3_ciphertext"]
+        for _ in range(5):
+            for cek in ceks:
+                cek_plaintext = get_plaintext_key(url=None, kek=None, cek=cek)
+                self.assertNotEqual(cek_plaintext, cek)
 
-        self.assertEqual(post_mock.call_count, 1)
+        # assert one call to 'dks' per key
+        self.assertEqual(post_mock.call_count, len(ceks))
 
 
 if __name__ == "__main__":
