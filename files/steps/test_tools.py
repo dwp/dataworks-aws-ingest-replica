@@ -1,5 +1,4 @@
 import json
-from dataclasses import dataclass, field
 from time import time
 
 dks_test_data = {
@@ -33,12 +32,14 @@ dks_test_data = {
 }
 
 
-@dataclass
 class GetCollectionArgs:
-    collections: list = field(default_factory=list)
+    collections: list = None
     output_s3_bucket: str = "example-bucket"
     output_s3_prefix: str = "folder1/folder2"
     end_time: int = round(time() / 1000)
+
+    def __init__(self, collections=None):
+        self.collections = collections if collections else []
 
 
 def mock_get_key_from_dks(url, kek, cek, **kwargs):
