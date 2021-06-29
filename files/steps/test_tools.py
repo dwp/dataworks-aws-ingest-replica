@@ -21,12 +21,7 @@ dks_test_data = {
         sort_keys=True,
     ),
     "expected_message": json.dumps(
-        {
-            "message": {
-                "_id": """{"id_type}: "abcde-fghij-klmno-pqrst\"""",
-                "dbObject": {"key_decrypted": "value_decrypted"},
-            },
-        },
+        {"key_decrypted": "value_decrypted"},
         sort_keys=True,
     ),
 }
