@@ -75,6 +75,7 @@ def get_parameters():
     # Parse command line inputs and set defaults
     parser.add_argument("-d", "--dry_run", dest="dry_run", action="store_true")
     parser.add_argument("-e", "--test", dest="test", action="store_true")
+    parser.add_argument("-e", "--tracked", dest="tracked", action="store_true")
     parser.add_argument("--correlation_id", default="0", type=str)
     parser.add_argument("--triggered_time", default=0, type=int)
     parser.add_argument(
@@ -89,11 +90,12 @@ def get_parameters():
         "--end_time", default=round(time.time() * 1000) - (5 * 60 * 1000), type=int
     )
     parser.add_argument("--log_path", default=LOG_PATH, type=str)
-    parser.set_defaults(dry_run=False)
-    parser.set_defaults(test=False)
+    parser.set_defaults(dry_run=False, test=False, tracked=False)
     args, unrecognized_args = parser.parse_known_args()
 
     if args.test is True:
+        if args.tracked is True:
+            raise Exception("Cannot use --tracked and --test flags together")
         global DATABASE_NAME
         DATABASE_NAME += "_tests"
     return args
@@ -109,25 +111,16 @@ def get_s3_client():
 
 
 def update_db_item(table, args, values: dict):
-    """Update dynamo_db with supplied values.  Ignore if --test arg present
-    or correlation_id is not properly generated"""
-    if any(
-        [
-            args.test is True,
-            args.correlation_id is None,
-            args.correlation_id in ["0", ""],
-        ]
-    ):
-        return
-
-    updates = {key: {"Value": value} for key, value in values.items()}
-    table.update_item(
-        Key={
-            "CorrelationId": args.correlation_id,
-            "TriggeredTime": args.triggered_time,
-        },
-        AttributeUpdates=updates,
-    )
+    """Update dynamo_db with supplied values if --tracked parameter supplied"""
+    if args.tracked is True and args.test is False:
+        updates = {key: {"Value": value} for key, value in values.items()}
+        table.update_item(
+            Key={
+                "CorrelationId": args.correlation_id,
+                "TriggeredTime": args.triggered_time,
+            },
+            AttributeUpdates=updates,
+        )
 
 
 def get_collections(args):

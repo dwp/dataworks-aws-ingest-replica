@@ -116,6 +116,7 @@ def launch_cluster(
                     str(correlation_id),
                     "--triggered_time",
                     str(triggered_time),
+                    "--tracked"
                 ]
             },
         }
