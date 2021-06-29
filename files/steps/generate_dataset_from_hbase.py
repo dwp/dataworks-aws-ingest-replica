@@ -270,23 +270,28 @@ def decrypt_ciphertext(ciphertext, key, iv):
 
 
 def decrypt_message(item):
-    """Find and decrypt dbObject, Return full message."""
+    """Find and decrypt dbObject, return tuple containing record ID and decrypted
+    db_object."""
     json_item = json.loads(item)
     record_id = json_item["message"]["_id"]
+
+    # get encryption materials
     iv = json_item["message"]["encryption"]["initialisationVector"]
     cek = json_item["message"]["encryption"]["encryptedEncryptionKey"]
     kek = json_item["message"]["encryption"]["keyEncryptionKeyId"]
+    # get encrypted db_object
     db_obj = json_item["message"]["dbObject"]
 
+    # decrypt data key using cache/dks
     plaintext_key = get_plaintext_key(
         DKS_DECRYPT_ENDPOINT,
         kek,
         cek,
     )
+
+    # decrypt object using plaintext data key
     decrypted_obj = decrypt_ciphertext(db_obj, plaintext_key, iv)
-    json_item["message"]["dbObject"] = json.loads(decrypted_obj)
-    del json_item["message"]["encryption"]
-    return record_id, json.dumps(json_item)
+    return record_id, decrypted_obj
 
 
 def filter_rows(x):
