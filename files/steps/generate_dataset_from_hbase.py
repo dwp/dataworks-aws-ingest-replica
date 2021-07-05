@@ -22,6 +22,7 @@ from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from boto3.dynamodb.conditions import Attr, Key
+from argparse import ArgumentError
 
 
 from pyspark import AccumulatorParam
@@ -121,7 +122,7 @@ def get_parameters():
 
     if args.test is True:
         if args.tracked is True:
-            raise Exception("Cannot use --tracked and --test flags together")
+            raise ArgumentError("Cannot use --tracked and --test flags together")
         global DATABASE_NAME
         DATABASE_NAME += "_tests"
     return args

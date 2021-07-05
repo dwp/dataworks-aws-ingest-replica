@@ -179,7 +179,7 @@ def handler(event, context):
             job_table=job_table,
             topic_arn=LAUNCH_SNS_TOPIC_ARN,
         )
-    except PollingTimeoutError as e:
+    except PollingTimeoutError:
         # Dynamodb already updated with status
         raise
     except Exception:
