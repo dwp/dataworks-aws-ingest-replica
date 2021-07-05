@@ -133,7 +133,7 @@ class TestCollections(unittest.TestCase):
     def test_get_collections_with_args(self):
         args = GetCollectionArgs()
         args.collections = ["db1:collection1", "db2:collection2"]
-        collections_output = get_collections(args)
+        collections_output = get_collections(args, "<table>")
         self.collections_test(args.collections, collections_output)
 
     @mock.patch(
