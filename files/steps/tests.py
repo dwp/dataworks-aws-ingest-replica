@@ -95,7 +95,7 @@ class TestSparkFunctions(unittest.TestCase):
         self.assertIsInstance(output, list)
         self.assertEqual(len(output), 3)
         self.assertEqual(output[0], "<id>")
-        self.assertEqual(output[1], "<timestamp>")
+        self.assertEqual(output[1], "12345")
         self.assertEqual(output[2], "<recordvalue>")
 
 
