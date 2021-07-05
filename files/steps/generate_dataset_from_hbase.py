@@ -23,9 +23,9 @@ from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from boto3.dynamodb.conditions import Attr, Key
 
-if __name__ == "__main__":
-    from pyspark import AccumulatorParam
-    from pyspark.sql import SparkSession
+
+from pyspark import AccumulatorParam
+from pyspark.sql import SparkSession
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3 import Retry
 
