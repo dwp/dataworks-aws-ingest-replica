@@ -252,7 +252,7 @@ def get_collections(args, job_table):
     return collections
 
 
-def get_collections_from_aws(secrets_client, collections_secret_name):
+def get_collections_from_aws(collections_secret_name):
     """Parse collections returned by AWS Secrets Manager"""
     return [
         {
@@ -260,14 +260,15 @@ def get_collections_from_aws(secrets_client, collections_secret_name):
             "hive_table": f"{j['db']}_{j['table']}",
             "tags": j,
         }
-        for j in retrieve_secrets(secrets_client, collections_secret_name)[
+        for j in retrieve_secrets(collections_secret_name)[
             "collections_all"
         ].values()
     ]
 
 
-def retrieve_secrets(secrets_client, secret_name):
+def retrieve_secrets(secret_name):
     """Get b64 encoded secrets from AWS Secrets Manager"""
+    secrets_client = boto3.client("secretsmanager")
     response = secrets_client.get_secret_value(SecretId=secret_name)
     response_binary = response["SecretString"]
     response_decoded = base64.b64decode(response_binary).decode("utf-8")
