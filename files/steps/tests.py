@@ -89,7 +89,7 @@ class TestSparkFunctions(unittest.TestCase):
         mock_record_count.add = lambda x: None
         mock_max_timestamps.add = lambda x: None
         input_record = (
-            "<id> column=<column>,  timestamp=<timestamp>, value=<recordvalue>"
+            "<id> column=<column>,  timestamp=12345, value=<recordvalue>"
         )
         output = process_record(input_record, "<table_name>")
         self.assertIsInstance(output, list)
