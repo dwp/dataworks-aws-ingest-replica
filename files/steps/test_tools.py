@@ -32,6 +32,7 @@ class GetCollectionArgs:
     output_s3_bucket: str = "example-bucket"
     output_s3_prefix: str = "folder1/folder2"
     end_time: int = round(time() / 1000)
+    start_time: int = round(time() / 1000)-500
 
     def __init__(self, collections=None):
         self.collections = collections if collections else []
