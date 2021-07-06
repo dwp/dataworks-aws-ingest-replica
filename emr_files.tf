@@ -103,7 +103,7 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
       log_path                  = local.pyspark_log_path
       incremental_output_bucket = data.terraform_remote_state.common.outputs.published_bucket["id"]
       incremental_output_prefix = "intra-day/"
-      collections_secret_name   = "/ingest-replica/collections"
+      collections_secret_name   = local.collections_secret_name
       job_status_table_name     = aws_dynamodb_table.job_status.name
   })
 

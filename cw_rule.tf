@@ -32,6 +32,7 @@ resource "aws_lambda_function" "hbase_incremental_refresh_lambda" {
       emr_config_bucket     = data.terraform_remote_state.common.outputs.config_bucket["id"]
       emr_config_folder     = local.replica_emr_configuration_files_s3_prefix
       sns_topic_arn         = aws_sns_topic.hbase_incremental_refresh_sns.arn
+      collections_secret_name   = local.collections_secret_name
     }
   }
   tags = { Name = "hbase_incremental_refresh" }
@@ -62,6 +63,10 @@ resource "aws_lambda_permission" "allow_cloudwatch" {
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.hbase_incremental_refresh_lambda.function_name
   principal     = "events.amazonaws.com"
+}
+
+data "aws_secretsmanager_secret" "intraday_collections_secret" {
+  name = local.collections_secret_name
 }
 
 resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
@@ -112,6 +117,18 @@ resource "aws_iam_policy" "hbase_incremental_refresh_lambda_policy" {
         Resource : [
           aws_dynamodb_table.job_status.arn,
           "${aws_dynamodb_table.job_status.arn}/index/*"
+        ]
+      },
+      {
+        Sid = "AllowLambdaToGetSecretManagerSecretCollections"
+        Effect = "Allow"
+
+        Action = [
+          "secretsmanager:GetSecretValue",
+        ]
+
+        Resource = [
+          data.aws_secretsmanager_secret.intraday_collections_secret.arn
         ]
       }
     ]

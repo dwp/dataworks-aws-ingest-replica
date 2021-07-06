@@ -83,17 +83,19 @@ class TestSparkFunctions(unittest.TestCase):
             self.assertEqual(list_to_csv_str(i[0]), i[1])
 
     @mock.patch("generate_dataset_from_hbase.record_count")
+    @mock.patch("generate_dataset_from_hbase.max_timestamps")
     @mock.patch("generate_dataset_from_hbase.decrypt_message", lambda x: ("<id>", x))
-    def test_process_record(self, mock_record_count):
+    def test_process_record(self, mock_max_timestamps, mock_record_count):
         mock_record_count.add = lambda x: None
+        mock_max_timestamps.add = lambda x: None
         input_record = (
-            "<id> column=<column>,  timestamp=<timestamp>, value=<recordvalue>"
+            "<id> column=<column>,  timestamp=12345, value=<recordvalue>"
         )
-        output = process_record(input_record)
+        output = process_record(input_record, "<table_name>")
         self.assertIsInstance(output, list)
         self.assertEqual(len(output), 3)
         self.assertEqual(output[0], "<id>")
-        self.assertEqual(output[1], "<timestamp>")
+        self.assertEqual(output[1], "12345")
         self.assertEqual(output[2], "<recordvalue>")
 
 
@@ -133,15 +135,17 @@ class TestCollections(unittest.TestCase):
     def test_get_collections_with_args(self):
         args = GetCollectionArgs()
         args.collections = ["db1:collection1", "db2:collection2"]
-        collections_output = get_collections(args)
+        collections_output = get_collections(args, "<table>")
         self.collections_test(args.collections, collections_output)
 
     @mock.patch(
         "generate_dataset_from_hbase.get_collections_from_aws", mock_get_aws_collections
     )
-    def test_get_collections_without_args(self):
+    @mock.patch("generate_dataset_from_hbase.get_last_processed_timestamp")
+    def test_get_collections_without_args(self, mock_timestamp):
         args = GetCollectionArgs()
-        collections_output = get_collections(args)
+        mock_timestamp.side_effect = lambda x: 10000
+        collections_output = get_collections(args, "<table>")
         collections_list = [i["hbase_table"] for i in mock_get_aws_collections()]
         self.collections_test(collections_list, collections_output)
 
