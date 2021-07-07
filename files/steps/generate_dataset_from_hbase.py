@@ -628,6 +628,7 @@ def manual_handler(args):
         main(
             spark=spark,
             end_time=args.end_time,
+            database_name=args.database_name,
             collections=collections,
             s3_client=s3_client,
             accumulators=accumulators,
