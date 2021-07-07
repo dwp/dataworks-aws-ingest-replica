@@ -25,9 +25,8 @@ from boto3.dynamodb.conditions import Attr, Key
 from requests.adapters import HTTPAdapter
 from requests.packages.urllib3 import Retry
 
-if __name__=="__main__":
-    from pyspark import AccumulatorParam
-    from pyspark.sql import SparkSession
+from pyspark import AccumulatorParam
+from pyspark.sql import SparkSession
 
 DKS_ENDPOINT = "${dks_decrypt_endpoint}"
 DKS_DECRYPT_ENDPOINT = DKS_ENDPOINT + "/datakey/actions/decrypt/"
