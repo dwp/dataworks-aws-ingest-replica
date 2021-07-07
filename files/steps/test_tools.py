@@ -33,6 +33,8 @@ class GetCollectionArgs:
     output_s3_prefix: str = "folder1/folder2"
     end_time: int = round(time() / 1000)
     start_time: int = round(time() / 1000)-500
+    triggered_time: int = round(time() / 1000)-500
+    job_type: str = "scheduled"
 
     def __init__(self, collections=None):
         self.collections = collections if collections else []
@@ -72,3 +74,7 @@ def mock_retrieve_secrets(*args, **kwargs):
             "db.db2.collection2": {"db": "db2", "table": "collection2", "pii": "true"},
         },
     }
+
+
+def mock_decrypt_message(item, *args, **kwargs):
+    return "<id>", item

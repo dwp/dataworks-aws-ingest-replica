@@ -3,12 +3,10 @@ import unittest
 from unittest import mock
 from test_tools import (
     dks_test_data,
-    GetCollectionArgs,
     mock_get_key_from_dks,
     mock_get_plaintext_key,
-    mock_get_aws_collections,
-    mock_retrieve_secrets,
     mock_decrypt_ciphertext,
+    mock_decrypt_message,
 )
 
 from generate_dataset_from_hbase import (
@@ -19,8 +17,6 @@ from generate_dataset_from_hbase import (
     decrypt_ciphertext,
     decrypt_message,
     encrypt_plaintext,
-    get_collections,
-    get_collections_from_aws,
 )
 
 
@@ -51,11 +47,12 @@ class TestCrypto(unittest.TestCase):
     def test_decrypt_message(self):
         self.assertEqual(
             dks_test_data["expected_message"],
-            decrypt_message(dks_test_data["test_message"])[1],
+            decrypt_message(dks_test_data["test_message"], mock.MagicMock())[1],
         )
 
 
 class TestSparkFunctions(unittest.TestCase):
+
     def test_filter_rows(self):
         # returns True
         self.assertTrue(filter_rows("column=1234kj123lk4jhl"))
@@ -82,16 +79,13 @@ class TestSparkFunctions(unittest.TestCase):
         for i in test_values:
             self.assertEqual(list_to_csv_str(i[0]), i[1])
 
-    @mock.patch("generate_dataset_from_hbase.record_count")
-    @mock.patch("generate_dataset_from_hbase.max_timestamps")
-    @mock.patch("generate_dataset_from_hbase.decrypt_message", lambda x: ("<id>", x))
-    def test_process_record(self, mock_max_timestamps, mock_record_count):
-        mock_record_count.add = lambda x: None
-        mock_max_timestamps.add = lambda x: None
+    @mock.patch("generate_dataset_from_hbase.decrypt_message", mock_decrypt_message)
+    def test_process_record(self):
+        acc = mock.MagicMock()
         input_record = (
             "<id> column=<column>,  timestamp=12345, value=<recordvalue>"
         )
-        output = process_record(input_record, "<table_name>")
+        output = process_record(input_record, "<table_name>", acc)
         self.assertIsInstance(output, list)
         self.assertEqual(len(output), 3)
         self.assertEqual(output[0], "<id>")
@@ -108,57 +102,12 @@ class TestDksCache(unittest.TestCase):
         ceks = ["key1_ciphertext", "key2_ciphertext", "key3_ciphertext"]
         for _ in range(5):
             for cek in ceks:
-                cek_plaintext = get_plaintext_key(url=None, kek=None, cek=cek)
+                cek_plaintext = get_plaintext_key(url=None, kek=None, cek=cek, dks_count_acc=mock.MagicMock())
                 self.assertNotEqual(cek_plaintext, cek)
 
         # assert one call to 'dks' per key
         self.assertEqual(post_mock.call_count, len(ceks))
 
-
-class TestCollections(unittest.TestCase):
-    def collections_test(self, collections, collections_output):
-        for collection in collections:
-            config = None
-            for item in collections_output:
-                if item["hbase_table"] == collection:
-                    config = item
-            self.assertIsNotNone(config)
-
-            # assert config structure
-            self.assertIn("hive_table", config)
-            self.assertIn("tags", config)
-            # assert tags structure
-            self.assertIn("db", config["tags"])
-            self.assertIn("table", config["tags"])
-            self.assertIn("pii", config["tags"])
-
-    def test_get_collections_with_args(self):
-        args = GetCollectionArgs()
-        args.collections = ["db1:collection1", "db2:collection2"]
-        collections_output = get_collections(args, "<table>")
-        self.collections_test(args.collections, collections_output)
-
-    @mock.patch(
-        "generate_dataset_from_hbase.get_collections_from_aws", mock_get_aws_collections
-    )
-    @mock.patch("generate_dataset_from_hbase.get_last_processed_timestamp")
-    def test_get_collections_without_args(self, mock_timestamp):
-        args = GetCollectionArgs()
-        mock_timestamp.side_effect = lambda x: 10000
-        collections_output = get_collections(args, "<table>")
-        collections_list = [i["hbase_table"] for i in mock_get_aws_collections()]
-        self.collections_test(collections_list, collections_output)
-
-    @mock.patch("generate_dataset_from_hbase.retrieve_secrets", mock_retrieve_secrets)
-    def test_secrets_parsing(self):
-        collections = get_collections_from_aws("fake_secret_name")
-        for collection in collections:
-            self.assertIn("hbase_table", collection)
-            self.assertIn("hive_table", collection)
-            self.assertIn("tags", collection)
-            self.assertIn("pii", collection["tags"])
-            self.assertIn("table", collection["tags"])
-            self.assertIn("db", collection["tags"])
 
 
 if __name__ == "__main__":

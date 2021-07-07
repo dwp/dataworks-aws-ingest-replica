@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import argparse
-import ast
 import base64
 import binascii
 import concurrent.futures
@@ -14,6 +13,7 @@ import os
 import re
 import sys
 import time
+from argparse import ArgumentError
 
 import boto3
 import botocore.config
@@ -22,13 +22,12 @@ from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from boto3.dynamodb.conditions import Attr, Key
-from argparse import ArgumentError
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3 import Retry
 
 if __name__=="__main__":
     from pyspark import AccumulatorParam
     from pyspark.sql import SparkSession
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3 import Retry
 
 DKS_ENDPOINT = "${dks_decrypt_endpoint}"
 DKS_DECRYPT_ENDPOINT = DKS_ENDPOINT + "/datakey/actions/decrypt/"
@@ -60,17 +59,17 @@ def ms_epoch_now():
     return round(time.time() * 1000) - (5 * 60 * 1000)
 
 
-# class DictAccumulatorParam(AccumulatorParam):
-#     def zero(self, v):
-#         return v.copy()
-#
-#     def addInPlace(self, d1, d2):
-#         for key, value in d2.items():
-#             if not d1.get(key):
-#                 d1.update({key: value})
-#             elif value:
-#                 d1.update({key: max(value, d1.get(key, value))})
-#         return d1
+class DictAccumulatorParam(AccumulatorParam):
+    def zero(self, v):
+        return v.copy()
+
+    def addInPlace(self, d1, d2):
+        for key, value in d2.items():
+            if not d1.get(key):
+                d1.update({key: value})
+            elif value:
+                d1.update({key: max(value, d1.get(key, value))})
+        return d1
 
 
 def setup_logging(log_level, log_path):
