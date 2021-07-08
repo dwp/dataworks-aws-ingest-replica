@@ -1,6 +1,5 @@
 #!/usr/bin/python3
 import argparse
-import ast
 import base64
 import binascii
 import concurrent.futures
@@ -14,6 +13,7 @@ import os
 import re
 import sys
 import time
+from argparse import ArgumentError
 
 import boto3
 import botocore.config
@@ -22,13 +22,11 @@ from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Util import Counter
 from boto3.dynamodb.conditions import Attr, Key
-from argparse import ArgumentError
-
+from requests.adapters import HTTPAdapter
+from requests.packages.urllib3 import Retry
 
 from pyspark import AccumulatorParam
 from pyspark.sql import SparkSession
-from requests.adapters import HTTPAdapter
-from requests.packages.urllib3 import Retry
 
 DKS_ENDPOINT = "${dks_decrypt_endpoint}"
 DKS_DECRYPT_ENDPOINT = DKS_ENDPOINT + "/datakey/actions/decrypt/"
@@ -43,10 +41,6 @@ DATABASE_NAME = "intraday"
 LOG_PATH = "${log_path}"
 dks_cache = {}
 
-# pyspark accumulators
-dks_count = None
-record_count = None
-max_timestamps = None
 
 EMRStates = {
     "TRIGGERED": "LAMBDA_TRIGGERED",  # this lambda was triggered
@@ -58,6 +52,10 @@ EMRStates = {
     "EMR_FAILED": "EMR_FAILED",  # emr cluster couldn't process data successfully
     "LAMBDA_FAILED": "LAMBDA_FAILED",  # lambda encountered an error
 }
+
+
+def ms_epoch_now():
+    return round(time.time() * 1000) - (5 * 60 * 1000)
 
 
 class DictAccumulatorParam(AccumulatorParam):
@@ -99,32 +97,35 @@ def get_parameters():
     parser = argparse.ArgumentParser(
         description="Receive args provided to spark submit job"
     )
-    # Parse command line inputs and set defaults
-    parser.add_argument("-d", "--dry_run", dest="dry_run", action="store_true")
-    parser.add_argument("--test", dest="test", action="store_true")
-    parser.add_argument("--tracked", dest="tracked", action="store_true")
-    parser.add_argument("--correlation_id", default="0", type=str)
-    parser.add_argument("--triggered_time", default=0, type=int)
-    parser.add_argument(
-        "--output_s3_bucket", default=INCREMENTAL_OUTPUT_BUCKET, type=str
-    )
-    parser.add_argument(
-        "--output_s3_prefix", default=INCREMENTAL_OUTPUT_PREFIX, type=str
-    )
-    parser.add_argument("--collections", type=str, nargs="+")
-    parser.add_argument("--start_time", type=int)
-    parser.add_argument(
-        "--end_time", default=round(time.time() * 1000) - (5 * 60 * 1000), type=int
-    )
-    parser.add_argument("--log_path", default=LOG_PATH, type=str)
-    parser.set_defaults(dry_run=False, test=False, tracked=False)
-    args, unrecognized_args = parser.parse_known_args()
+    sub_p = parser.add_subparsers(dest="job_type")
+    p_scheduled = sub_p.add_parser("scheduled", description="Run scheduled execution")
+    p_manual = sub_p.add_parser("manual", description="Run manual execution")
 
-    if args.test is True:
-        if args.tracked is True:
-            raise ArgumentError("Cannot use --tracked and --test flags together")
-        global DATABASE_NAME
-        DATABASE_NAME += "_tests"
+    # Scheduled
+    p_scheduled.add_argument("--correlation_id", type=str, required=True)
+    p_scheduled.add_argument("--triggered_time", type=int, required=True)
+    p_scheduled.add_argument("--collections", type=str, nargs="+", required=True)
+    p_scheduled.add_argument("--database_name", type=str, default="intra_day")
+    p_scheduled.add_argument("--end_time", type=int, required=True)
+    p_scheduled.add_argument(
+        "--output_s3_bucket", type=str, default=INCREMENTAL_OUTPUT_BUCKET
+    )
+    p_scheduled.add_argument(
+        "--output_s3_prefix", type=str, default=INCREMENTAL_OUTPUT_PREFIX
+    )
+
+    # Manual
+    p_manual.add_argument("--correlation_id", type=str, required=True)
+    p_manual.add_argument("--collections", type=str, nargs="+", required=True)
+    p_manual.add_argument("--start_time", type=int, default=0)
+    p_manual.add_argument("--end_time", type=int)
+    p_manual.add_argument("--triggered_time", type=int)
+    p_manual.add_argument(
+        "--output_s3_bucket", type=str, default=INCREMENTAL_OUTPUT_BUCKET
+    )
+    p_manual.add_argument("--output_s3_prefix", type=str, required=True)
+
+    args, unrecognized_args = parser.parse_known_args()
     return args
 
 
@@ -137,39 +138,41 @@ def get_s3_client():
     return client
 
 
-def update_db_with_success(table, args, max_timestamps, bulk_values=None):
+def update_db_with_success(table, correlation_id, max_timestamps, bulk_values=None):
     """Updates each collection with its max_timestamp, updates all collections
     with any bulk_values provided"""
-    if args.tracked is True and args.test is False:
-        collection_update_values = {
-            collection: {"ProcessedDataEnd": max_timestamp}
-            for collection, max_timestamp in max_timestamps.items()
-        }
+    collection_update_values = {
+        collection: {"ProcessedDataEnd": max_timestamp}
+        for collection, max_timestamp in max_timestamps.items()
+    }
 
-        for values_dict in collection_update_values.values():
-            values_dict.update(bulk_values)
+    for values_dict in collection_update_values.values():
+        values_dict.update(bulk_values)
 
-        update_db_per_collection(table, args.correlation_id, collection_update_values)
+    update_db_per_collection(table, correlation_id, collection_update_values)
 
 
-def update_db_bulk_collections(table, args, collections, values: dict):
+def update_db_bulk_collections(table, correlation_id, collections, values: dict):
     """Update dynamo_db with supplied values for collections provided"""
-    if args.tracked is True and args.test is False:
-        collections_names = [i["hbase_table"] for i in collections]
-        for collection in collections_names:
-            _update_db_collection(table, args.correlation_id, collection, values)
+    collections_names = [i["hbase_table"] for i in collections]
+    for collection in collections_names:
+        _update_db_collection(table, correlation_id, collection, values)
 
 
-def update_db_per_collection(table, correlation_id, values_per_collection: dict):
-    """Update dynamodb with supplied collection-specific values"""
-    if args.tracked is True and args.test is False:
+def update_db_per_collection(
+    table, correlation_id, values_per_collection: dict, bulk_values: dict = None
+):
+    """Update dynamodb with supplied collection-specific values  Bulk values
+    will overwrite per-collection values."""
+    if bulk_values:
         for collection, values in values_per_collection.items():
-            _update_db_collection(table, correlation_id, collection, values)
+            values.update(bulk_values)
+
+    for collection, values in values_per_collection.items():
+        _update_db_collection(table, correlation_id, collection, values)
 
 
 def _update_db_collection(table, correlation_id, collection, values: dict):
-    """Not intended to be called directly, does not check whether updates to db are
-    required"""
     updates = {key: {"Value": value} for key, value in values.items()}
     table.update_item(
         Key={
@@ -180,7 +183,20 @@ def _update_db_collection(table, correlation_id, collection, values: dict):
     )
 
 
-def get_last_processed_timestamp(collection, job_table):
+def get_start_timestamp(collection, args, job_table=None):
+    # different scenarios for test / tracked / manual executions
+    if args.job_type == "scheduled" and job_table is not None:
+        # get timestamp from dynamodb
+        start_time = get_last_processed_dynamodb(collection, job_table) + 1
+    elif args.start_time:
+        # use args.start_time
+        start_time = args.start_time
+    else:
+        raise ArgumentError(message="start_time not provided", argument=args.start_time)
+    return start_time
+
+
+def get_last_processed_dynamodb(collection, job_table):
     results = job_table.query(
         IndexName="byCollection",
         ProjectionExpression="ProcessedDataEnd",
@@ -202,79 +218,53 @@ def get_last_processed_timestamp(collection, job_table):
         raise
     except KeyError:
         _logger.error(
-            f"DB Item does not include attribute 'ProcesssedDataEnd'.  Ensure"
+            f"DB Item does not include attribute 'ProcessedDataEnd'.  Ensure"
             f" this is present for collection {collection}"
         )
         raise
 
 
-def get_collections(args, job_table):
-    """Get collections and required information either from args, or from AWS Secrets"""
-    timestamp_folder = datetime.datetime.fromtimestamp(args.end_time / 1000.0).strftime(
-        "%Y%m%d-%H%M"
-    )
-    if args.collections:
-        # Assume PII, parse table/db names for tags
-        collections = [
-            {
-                "hbase_table": collection,
-                "hive_table": collection.replace(":", "_"),
-                "tags": {
-                    "pii": "true",
-                    "db": collection.split(":")[0],
-                    "table": collection.split(":")[1],
-                },
-            }
-            for collection in args.collections
-        ]
-    else:
-        collections = get_collections_from_aws(COLLECTIONS_SECRET_NAME)
+def get_collections(args, job_table=None):
+    """Parse collections and add required information"""
+    timestamp_folder = datetime.datetime.fromtimestamp(
+        args.triggered_time / 1000.0
+    ).strftime("%Y%m%d-%H%M")
+
+    # Assume PII, parse table/db names for tags
+    collections = [
+        {
+            "hbase_table": collection,
+            "hive_table": collection.replace(":", "_"),
+            "tags": {
+                "pii": "true",
+                "db": collection.split(":")[0],
+                "table": collection.split(":")[1],
+            },
+        }
+        for collection in args.collections
+    ]
 
     for collection in collections:
+        if args.job_type == "scheduled":
+            start_time = get_start_timestamp(collection["hbase_table"], args, job_table)
+        else:
+            start_time = args.start_time
+        coll_prefix = os.path.join(args.output_s3_prefix, collection["hive_table"])
+        full_prefix = os.path.join(coll_prefix, timestamp_folder)
+
         collection.update(
             {
-                "start_time": get_last_processed_timestamp(
-                    collection["hbase_table"], job_table
-                )
-                + 1
-                if not args.start_time
-                else args.start_time,
+                "start_time": start_time,
                 "output_bucket": args.output_s3_bucket,
                 "output_root_prefix": args.output_s3_prefix,
-                "collection_output_prefix": os.path.join(
-                    args.output_s3_prefix, collection["hive_table"]
-                ),
-                "full_output_prefix": os.path.join(
-                    args.output_s3_prefix, collection["hive_table"], timestamp_folder
-                ),
+                "collection_output_prefix": coll_prefix,
+                "full_output_prefix": full_prefix,
             }
         )
 
+    if len(collections) < 1:
+        raise IndexError("No collections provided")
     return collections
-
-
-def get_collections_from_aws(collections_secret_name):
-    """Parse collections returned by AWS Secrets Manager"""
-    return [
-        {
-            "hbase_table": f"{j['db']}:{j['table']}",
-            "hive_table": f"{j['db']}_{j['table']}",
-            "tags": j,
-        }
-        for j in retrieve_secrets(collections_secret_name)[
-            "collections_all"
-        ].values()
-    ]
-
-
-def retrieve_secrets(secret_name):
-    """Get b64 encoded secrets from AWS Secrets Manager"""
-    secrets_client = boto3.client("secretsmanager")
-    response = secrets_client.get_secret_value(SecretId=secret_name)
-    response_binary = response["SecretString"]
-    response_decoded = base64.b64decode(response_binary).decode("utf-8")
-    response_dict = ast.literal_eval(response_decoded)
-    return response_dict
 
 
 def replica_metadata_refresh():
@@ -316,9 +306,10 @@ def encrypt_plaintext(data_key, plaintext_string, iv=None):
     return ciphertext.decode("ascii"), iv.decode("ascii")
 
 
-def get_plaintext_key(url, kek, cek):
+def get_plaintext_key(url, kek, cek, dks_count_acc):
     plaintext_key = dks_cache.get(cek)
     if not plaintext_key:
+        dks_count_acc.add(1)
         plaintext_key = get_key_from_dks(url, kek, cek)
         dks_cache[cek] = plaintext_key
     return plaintext_key
@@ -326,7 +317,6 @@ def get_plaintext_key(url, kek, cek):
 
 def get_key_from_dks(url, kek, cek):
     """Call DKS to return decrypted datakey."""
-    global dks_count
     request = retry_requests(methods=["POST"])
 
     response = request.post(
@@ -342,7 +332,6 @@ def get_key_from_dks(url, kek, cek):
     content = response.json()
     plaintext_key = content["plaintextDataKey"]
     dks_cache[kek] = plaintext_key
-    dks_count.add(1)
     return plaintext_key
 
 
@@ -354,7 +343,7 @@ def decrypt_ciphertext(ciphertext, key, iv):
     return aes.decrypt(base64.b64decode(ciphertext)).decode("utf8")
 
 
-def decrypt_message(item):
+def decrypt_message(item, dks_count_acc):
     """Find and decrypt dbObject, return tuple containing record ID and decrypted
     db_object."""
     json_item = json.loads(item)
@@ -372,6 +361,7 @@ def decrypt_message(item):
         DKS_DECRYPT_ENDPOINT,
         kek,
         cek,
+        dks_count_acc,
     )
 
     # decrypt object using plaintext data key
@@ -386,14 +376,12 @@ def filter_rows(x):
         return False
 
 
-def process_record(x, table_name):
-    global record_count
-    global max_timestamps
+def process_record(x, table_name, accumulators):
     y = [str.strip(i) for i in re.split(r" *column=|, *timestamp=|, *value=", x)]
     timestamp = y[2]
-    record_id, record = decrypt_message(y[3])
-    record_count.add(1)
-    max_timestamps.add({table_name: int(timestamp)})
+    record_id, record = decrypt_message(y[3], accumulators["dks_count"])
+    accumulators["record_count"].add(1)
+    accumulators["max_timestamps"].add({table_name: int(timestamp)})
     return [record_id, timestamp, record]
 
 
@@ -404,54 +392,41 @@ def list_to_csv_str(x):
 
 
 def process_collection(
-    collection,
-    spark,
-    args,
+    collection_info, spark, end_time, accumulators, update_dynamodb=False
 ):
     """Extract collection from hbase, decrypt, put in S3."""
-    hbase_table_name = collection["hbase_table"]
-    hive_table_name = collection["hive_table"]
-    start_time = collection["start_time"]
-    end_time = args.end_time
+    hbase_table_name = collection_info["hbase_table"]
+    hive_table_name = collection_info["hive_table"]
+    start_time = collection_info["start_time"]
 
-    max_timestamps.add({hbase_table_name: None})
-
-    table = boto3.resource("dynamodb").Table(JOB_STATUS_TABLE)
-    update_db_per_collection(
-        table=table,
-        correlation_id=args.correlation_id,
-        values_per_collection={hbase_table_name: {"ProcessedDataStart": start_time}},
-    )
-
+    accumulators["max_timestamps"].add({hbase_table_name: None})
     hbase_commands = (
         f"refresh_hfiles '{hbase_table_name}' \n"
         + f"scan '{hbase_table_name}', {{TIMERANGE => [{start_time}, {end_time}]}}"
     )
-
     os.system(
         f'echo -e "{hbase_commands}" '
         f"| hbase shell  "
         f"| hdfs dfs -put -f - hdfs:///{hive_table_name}"
     )
-
     rdd = (
         spark.sparkContext.textFile(f"hdfs:///{hive_table_name}")
         .filter(filter_rows)
-        .map(lambda x: process_record(x, hbase_table_name))
+        .map(lambda x: process_record(x, hbase_table_name, accumulators))
         .map(list_to_csv_str)
     )
     rdd.saveAsTextFile(
         "s3://"
         + os.path.join(
-            collection["output_bucket"],
-            collection["full_output_prefix"],
+            collection_info["output_bucket"],
+            collection_info["full_output_prefix"],
         ),
         compressionCodecClass="com.hadoop.compression.lzo.LzopCodec",
     )
-    return collection
+    return collection_info
 
 
-def create_hive_table(collection):
+def create_hive_table(spark, database_name, collection):
     """Create hive table + 'latest' view over data in s3"""
     hive_table = collection["hive_table"]
     s3_path = "s3://" + os.path.join(
@@ -460,12 +435,12 @@ def create_hive_table(collection):
     )
 
     # sql to ensure db exists
-    create_db = f"create database if not exists {DATABASE_NAME}"
+    create_db = f"create database if not exists {database_name}"
 
     # sql for creating table over s3 data
-    drop_table = f"drop table if exists {DATABASE_NAME}.{hive_table}"
+    drop_table = f"drop table if exists {database_name}.{hive_table}"
     create_table = f"""
-    create external table if not exists {DATABASE_NAME}.{hive_table}
+    create external table if not exists {database_name}.{hive_table}
         (id string, record_timestamp string, record string)
         ROW FORMAT SERDE 'org.apache.hadoop.hive.serde2.OpenCSVSerde'
            WITH SERDEPROPERTIES ( 
@@ -475,9 +450,9 @@ def create_hive_table(collection):
         stored as textfile location "{s3_path}"
     """
 
-    drop_view = f"drop view if exists {DATABASE_NAME}.v_{hive_table}_latest"
+    drop_view = f"drop view if exists {database_name}.v_{hive_table}_latest"
     create_view = f"""
-        create view {DATABASE_NAME}.v_{hive_table}_latest as with ranked as (
+        create view {database_name}.v_{hive_table}_latest as with ranked as (
         select  id,
                 record_timestamp,
                 record, 
@@ -485,7 +460,7 @@ def create_hive_table(collection):
                     partition by id 
                     order by id desc, cast(record_timestamp as bigint) desc
                 ) RANK
-        from {DATABASE_NAME}.{hive_table})
+        from {database_name}.{hive_table})
         select id, record_timestamp, record from ranked where RANK = 1
         """
 
@@ -518,7 +493,7 @@ def tag_s3_objects(s3_client, collection):
     _logger.info(f"{collection['hive_table']}: tagging complete, {i} objects")
 
 
-def main(spark, args, collections, s3_client):
+def main(spark, end_time, database_name, collections, s3_client, accumulators, update_dynamodb=False):
     replica_metadata_refresh()
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -527,7 +502,9 @@ def main(spark, args, collections, s3_client):
                     process_collection,
                     collections,
                     itertools.repeat(spark),
-                    itertools.repeat(args),
+                    itertools.repeat(end_time),
+                    itertools.repeat(accumulators),
+                    itertools.repeat(update_dynamodb),
                 )
             )
     except Exception as e:
@@ -536,7 +513,14 @@ def main(spark, args, collections, s3_client):
 
     # create Hive tables
     with concurrent.futures.ThreadPoolExecutor() as executor:
-        _ = list(executor.map(create_hive_table, list(processed_collections)))
+        _ = list(
+            executor.map(
+                create_hive_table,
+                itertools.repeat(spark),
+                itertools.repeat(database_name),
+                list(processed_collections)
+            )
+        )
 
     # tag files
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -547,59 +531,69 @@ def main(spark, args, collections, s3_client):
         )
 
 
-if __name__ == "__main__":
-    _logger = setup_logging(
-        log_level="INFO",
-        log_path=LOG_PATH,
-    )
-    cluster_id = os.environ["EMR_CLUSTER_ID"]
-    args = get_parameters()
+def get_job_status_table():
+    return boto3.resource("dynamodb").Table(JOB_STATUS_TABLE)
 
-    if args.dry_run is True:
-        _logger.warning("Dry Run Flag (-d, --dry-run) set, exiting with success status")
-        exit(0)
 
-    dynamodb = boto3.resource("dynamodb")
-    job_table = dynamodb.Table(JOB_STATUS_TABLE)
-    collections = get_collections(args=args, job_table=job_table)
-
-    if len(collections) == 0:
-        _logger.warning("No collections to process, exiting")
-        exit(0)
-
+def scheduled_handler(args, cluster_id):
+    # boto3
+    job_table = get_job_status_table()
     s3_client = get_s3_client()
+
+    # spark
     spark = SparkSession.builder.enableHiveSupport().getOrCreate()
     dks_count = spark.sparkContext.accumulator(0)
     record_count = spark.sparkContext.accumulator(0)
     max_timestamps = spark.sparkContext.accumulator(dict(), DictAccumulatorParam())
+    accumulators = {
+        "dks_count": dks_count,
+        "record_count": record_count,
+        "max_timestamps": max_timestamps,
+    }
 
-    update_db_bulk_collections(
+    # main
+    collections = get_collections(args, job_table)
+
+    start_times = {
+        collection["hbase_table"]: {"ProcessedDataStart": collection["start_time"]}
+        for collection in collections
+    }
+    update_db_per_collection(
         table=job_table,
-        args=args,
-        collections=collections,
-        values={
+        correlation_id=args.correlation_id,
+        values_per_collection=start_times,
+        bulk_values={
             "JobStatus": EMRStates["PROCESSING"],
             "EMRReadyTime": round(time.time() * 1000),
             "EMRClusterId": cluster_id,
+            "TriggeredTime": args.triggered_time,
         },
     )
-
     perf_start = time.perf_counter()
     try:
-        main(spark=spark, args=args, collections=collections, s3_client=s3_client)
+        main(
+            spark=spark,
+            end_time=args.end_time,
+            database_name=args.database_name,
+            collections=collections,
+            s3_client=s3_client,
+            accumulators=accumulators,
+            update_dynamodb=True,
+        )
         update_db_with_success(
             table=job_table,
-            args=args,
+            correlation_id=args.correlation_id,
             max_timestamps=max_timestamps.value,
             bulk_values={"JobStatus": EMRStates["COMPLETED"]},
         )
         perf_end = time.perf_counter()
         total_time = round(perf_end - perf_start)
+
     except Exception as e:
         _logger.error(f"Failed to process collections")
         update_db_bulk_collections(
             table=job_table,
-            args=args,
+            correlation_id=args.correlation_id,
             collections=collections,
             values={"JobStatus": EMRStates["EMR_FAILED"]},
         )
@@ -609,3 +603,64 @@ if __name__ == "__main__":
         f"time taken to process collections: {record_count.value} records"
         + f" in {total_time}s.  {dks_count.value} calls to DKS"
     )
+
+
+def manual_handler(args):
+    # boto3
+    s3_client = get_s3_client()
+
+    # spark
+    spark = SparkSession.builder.enableHiveSupport().getOrCreate()
+    dks_count = spark.sparkContext.accumulator(0)
+    record_count = spark.sparkContext.accumulator(0)
+    max_timestamps = spark.sparkContext.accumulator(dict(), DictAccumulatorParam())
+    accumulators = {
+        "dks_count": dks_count,
+        "record_count": record_count,
+        "max_timestamps": max_timestamps,
+    }
+
+    # main
+    collections = get_collections(args)
+    perf_start = time.perf_counter()
+    try:
+        main(
+            spark=spark,
+            end_time=args.end_time,
+            database_name=args.database_name,
+            collections=collections,
+            s3_client=s3_client,
+            accumulators=accumulators,
+            update_dynamodb=False,
+        )
+        perf_end = time.perf_counter()
+        total_time = round(perf_end - perf_start)
+
+    except Exception as e:
+        _logger.error(f"Failed to process collections")
+        raise e
+
+    _logger.info(
+        f"time taken to process collections: {record_count.value} records"
+        + f" in {total_time}s.  {dks_count.value} calls to DKS"
+    )
+
+
+if __name__ == "__main__":
+    _logger = setup_logging(
+        log_level="INFO",
+        log_path=LOG_PATH,
+    )
+    cluster_id = os.environ.get("EMR_CLUSTER_ID")
+    args = get_parameters()
+
+    args.triggered_time = (
+        ms_epoch_now() if args.triggered_time is None else args.triggered_time
+    )
+
+    if args.job_type == "scheduled":
+        scheduled_handler(args, cluster_id)
+    elif args.job_type == "manual":
+        manual_handler(args)
+    else:
+        raise ArgumentError(args.job_type, "Unrecognised job_type")
