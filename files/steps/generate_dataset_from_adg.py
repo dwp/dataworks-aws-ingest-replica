@@ -1,13 +1,13 @@
+import argparse
+import csv
+import datetime
+import io
+import itertools
 import json
+import os.path
+from concurrent.futures import ThreadPoolExecutor
 
 from pyspark.sql import SparkSession
-import os.path
-import argparse
-import json
-from concurrent.futures import ThreadPoolExecutor
-import datetime
-import itertools
-import io, csv
 
 
 def get_parameters():
