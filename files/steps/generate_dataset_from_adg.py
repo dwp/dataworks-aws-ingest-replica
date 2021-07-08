@@ -78,9 +78,9 @@ def process_rdds(collections):
     def process_record(x):
         """function to apply to each record, returns list with id, timestamp, record"""
         record = json.loads(x)
-        id = record["_id"]
+        record_id = record["_id"]
         timestamp = process_timestamp(record.get("_lastModifiedDateTime", None))
-        return [str(x) for x in [id, timestamp, x]]
+        return [str(x) for x in [record_id, timestamp, x]]
 
     def output_csv_string(x):
         output = io.StringIO("")
