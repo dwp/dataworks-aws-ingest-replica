@@ -110,6 +110,14 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
   tags = { Name = "emr-step-generate-dataset-from-hbase" }
 }
 
+resource "aws_s3_bucket_object" "generate_dataset_from_adg" {
+  bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
+  key    = "${local.replica_emr_step_scripts_s3_prefix}/generate_dataset_from_adg.py"
+  content = file("files/steps/generate_dataset_from_adg.py")
+
+  tags = { Name = "emr-step-generate-dataset-from-adg" }
+}
+
 
 resource "aws_s3_bucket_object" "download_scripts" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
