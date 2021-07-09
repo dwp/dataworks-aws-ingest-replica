@@ -5,7 +5,7 @@ locals {
       "SAT" : "cron(0 19,20 ? * SAT *)"
     },
     "qa" = {
-      "SUN-FRI" : "cron(30 10,11? * SUN-FRI *)",
+      "SUN-FRI" : "cron(30 10,11 ? * SUN-FRI *)",
       "SAT" : "cron(0 19,20 ? * SAT *)"
     },
     "integration" = {
