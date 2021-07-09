@@ -1,15 +1,42 @@
-resource "aws_cloudwatch_event_rule" "hbase_incremental_rule" {
-  name                = "hbase_incremental_refresh"
-  description         = "scheduler for incremental refresh"
-  schedule_expression = "cron(0, 8-18, ?, *, MON-FRI, *)"
-  tags                = { Name = "hbase_incremental_refresh" }
+locals {
+  intraday_schedule = {
+    "development" = {
+      "SUN-FRI" : "cron(0 10,11 ? * SUN-FRI *)",
+      "SAT" : "cron(0 19,20 ? * SAT *)"
+    },
+    "qa" = {
+      "SUN-FRI" : "cron(0 10,11? * SUN-FRI *)",
+      "SAT" : "cron(0 19,20 ? * SAT *)"
+    },
+    "integration" = {
+      "SUN-FRI" : "cron(0 10 ? * SUN-FRI *)",
+      "SAT" : "cron(0 10 ? * SAT *)"
+    },
+    "preprod" = {
+      "SUN-FRI" : "cron(0 10 ? * SUN-FRI *)",
+      "SAT" : "cron(0 10 ? * SAT *)"
+    },
+    "production" = {
+      "SUN-FRI" : "cron(0 10-14,19-22 ? * SUN-FRI *)",
+      "SAT" : "cron(0 19-22 ? * SAT *)"
+    },
+  }
 }
 
-//resource "aws_cloudwatch_event_target" "hbase_incremental_refresh_target" {
-//  rule      = aws_cloudwatch_event_rule.hbase_incremental_rule.name
-//  target_id = "hbase_incremental_refresh_target"
-//  arn       = aws_lambda_function.hbase_incremental_refresh_lambda.arn
-//}
+resource "aws_cloudwatch_event_rule" "hbase_incremental_rule" {
+  for_each            = local.intraday_schedule[local.environment]
+  name                = "intraday-refresh-${each.key}"
+  description         = "scheduler for incremental refresh, days: ${each.key}"
+  schedule_expression = each.value
+  tags                = { Name = "intraday-refresh-${each.key}" }
+}
+
+resource "aws_cloudwatch_event_target" "hbase_incremental_refresh_target" {
+  for_each  = local.intraday_schedule[local.environment]
+  rule      = aws_cloudwatch_event_rule.hbase_incremental_rule[each.key].name
+  target_id = "intraday-refresh-emr-launcher-${each.key}"
+  arn       = aws_lambda_function.hbase_incremental_refresh_lambda.arn
+}
 
 data "archive_file" "lambda_zip" {
   type        = "zip"
