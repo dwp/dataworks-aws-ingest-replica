@@ -20,10 +20,10 @@ resource "aws_dynamodb_table" "job_status" {
   }
 
   global_secondary_index {
-    hash_key = "Collection"
-    range_key = "TriggeredTime"
-    name = "byCollection"
-    projection_type = "INCLUDE"
+    hash_key           = "Collection"
+    range_key          = "TriggeredTime"
+    name               = "byCollection"
+    projection_type    = "INCLUDE"
     non_key_attributes = ["JobStatus", "ProcessedDataStart", "ProcessedDataEnd"]
   }
 
