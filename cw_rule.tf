@@ -13,8 +13,8 @@ locals {
       "SAT" : "cron(0 19 ? * SAT *)"
     },
     "preprod" = {
-      "SUN-FRI" : "cron(30 10 ? * SUN-FRI *)",
-      "SAT" : "cron(0 19 ? * SAT *)"
+      "SUN-FRI" : "cron(30 10-14,19-22 ? * SUN-FRI *)",
+      "SAT" : "cron(0 19-22 ? * SAT *)"
     },
     "production" = {
       "SUN-FRI" : "cron(30 10-14,19-22 ? * SUN-FRI *)",
