@@ -1,23 +1,23 @@
 locals {
   intraday_schedule = {
     "development" = {
-      "SUN-FRI" : "cron(0 10,11 ? * SUN-FRI *)",
+      "SUN-FRI" : "cron(30 10,11 ? * SUN-FRI *)",
       "SAT" : "cron(0 19,20 ? * SAT *)"
     },
     "qa" = {
-      "SUN-FRI" : "cron(0 10,11? * SUN-FRI *)",
+      "SUN-FRI" : "cron(30 10,11? * SUN-FRI *)",
       "SAT" : "cron(0 19,20 ? * SAT *)"
     },
     "integration" = {
-      "SUN-FRI" : "cron(0 10 ? * SUN-FRI *)",
+      "SUN-FRI" : "cron(30 10 ? * SUN-FRI *)",
       "SAT" : "cron(0 19 ? * SAT *)"
     },
     "preprod" = {
-      "SUN-FRI" : "cron(0 10 ? * SUN-FRI *)",
+      "SUN-FRI" : "cron(30 10 ? * SUN-FRI *)",
       "SAT" : "cron(0 19 ? * SAT *)"
     },
     "production" = {
-      "SUN-FRI" : "cron(0 10-14,19-22 ? * SUN-FRI *)",
+      "SUN-FRI" : "cron(30 10-14,19-22 ? * SUN-FRI *)",
       "SAT" : "cron(0 19-22 ? * SAT *)"
     },
   }
