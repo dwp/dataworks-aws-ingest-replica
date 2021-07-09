@@ -54,13 +54,18 @@ def get_rdds(spark, collections):
         collection.update({"rdd": spark.sparkContext.textFile(collection["s3_path"])})
 
 
-def process_timestamp(timestamp: dict):
-    if timestamp is None:
-        return 0
-    else:
+def process_timestamp(timestamp):
+    if isinstance(timestamp, dict):
         return round(
             datetime.datetime.strptime(
                 timestamp["d_date"], "%Y-%m-%dT%H:%M:%S.%fZ"
+            ).timestamp()
+            * 1000
+        )
+    elif isinstance(timestamp, str):
+        return round(
+            datetime.datetime.strptime(
+                timestamp, "%Y-%m-%dT%H:%M:%S.%fZ"
             ).timestamp()
             * 1000
         )
@@ -79,7 +84,13 @@ def process_rdds(collections):
         """function to apply to each record, returns list with id, timestamp, record"""
         record = json.loads(x)
         record_id = record["_id"]
-        timestamp = process_timestamp(record.get("_lastModifiedDateTime", None))
+        timestamp = None
+        for field in ["_lastModifiedDateTime", "createdDateTime"]:
+            if field in record:
+                timestamp = process_timestamp(record.get(field))
+                break
+        if timestamp is None:
+            timestamp = 0
         return [str(x) for x in [record_id, timestamp, x]]
 
     def output_csv_string(x):
@@ -121,7 +132,6 @@ def main():
     get_rdds(spark, collections)
     process_rdds(collections)
     output_rdds_from_collections(collections)
-
 
 if __name__ == "__main__":
     main()
