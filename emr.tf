@@ -1,6 +1,6 @@
 ########        Additional EMR cluster config
-resource "aws_emr_security_configuration" "ingest_read_replica" {
-  name = "ingest_read_replica"
+resource "aws_emr_security_configuration" "intraday_emr" {
+  name = "intraday_emr"
 
   configuration = jsonencode(
     {
@@ -27,18 +27,18 @@ resource "aws_emr_security_configuration" "ingest_read_replica" {
 #
 ########        IAM
 ########        Instance role & profile
-resource "aws_iam_role" "emr_hbase_replica" {
-  name               = "emr_hbase_replica"
+resource "aws_iam_role" "intraday_emr" {
+  name               = "intraday-emr"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 
-  tags = { Name = "emr_hbase_replica" }
+  tags = { Name = "intraday-emr" }
 }
 
-resource "aws_iam_instance_profile" "emr_hbase_replica" {
-  name = "emr_hbase_replica"
-  role = aws_iam_role.emr_hbase_replica.id
+resource "aws_iam_instance_profile" "intraday_emr" {
+  name = "intraday-emr"
+  role = aws_iam_role.intraday_emr.id
 
-  tags = { Name = "emr_hbase_replica" }
+  tags = { Name = "intraday-emr" }
 }
 
 data "aws_iam_policy_document" "ec2_assume_role" {
@@ -56,17 +56,17 @@ data "aws_iam_policy_document" "ec2_assume_role" {
 
 #        Attach AWS policies
 resource "aws_iam_role_policy_attachment" "emr_for_ec2_attachment" {
-  role       = aws_iam_role.emr_hbase_replica.name
+  role       = aws_iam_role.intraday_emr.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonElasticMapReduceforEC2Role"
 }
 
 resource "aws_iam_role_policy_attachment" "ec2_for_ssm_attachment" {
-  role       = aws_iam_role.emr_hbase_replica.name
+  role       = aws_iam_role.intraday_emr.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
 }
 
 #        Create and attach custom policies
-data "aws_iam_policy_document" "hbase_replica_main" {
+data "aws_iam_policy_document" "intraday_emr_main" {
   statement {
     sid    = "ListInputBucket"
     effect = "Allow"
@@ -271,7 +271,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 
   statement {
-    sid    = "AllowIngestHbaseToGetSecretManagerPassword"
+    sid    = "AllowIntradayHbaseToGetSecretManagerPassword"
     effect = "Allow"
 
     actions = [
@@ -280,21 +280,6 @@ data "aws_iam_policy_document" "hbase_replica_main" {
 
     resources = [
       data.terraform_remote_state.ingest.outputs.metadata_store_secrets["hbasewriter"]["arn"]
-    ]
-  }
-
-
-  statement {
-    sid    = "WriteManifestsInManifestBucket"
-    effect = "Allow"
-
-    actions = [
-      "s3:DeleteObject*",
-      "s3:PutObject",
-    ]
-
-    resources = [
-      "${data.terraform_remote_state.internal_compute.outputs.manifest_bucket["arn"]}/${local.s3_manifest_prefix[local.environment]}/*",
     ]
   }
 
@@ -337,7 +322,7 @@ data "aws_iam_policy_document" "hbase_replica_main" {
       "acm:*Certificate",
     ]
 
-    resources = [aws_acm_certificate.emr_replica_hbase.arn]
+    resources = [aws_acm_certificate.intraday-emr.arn]
   }
 
   statement {
@@ -352,20 +337,20 @@ data "aws_iam_policy_document" "hbase_replica_main" {
   }
 }
 
-resource "aws_iam_policy" "replica_hbase_main" {
-  name        = "ReplicaHbaseS3Main"
-  description = "Allow Ingestion EMR cluster to write HBase data to the input bucket"
-  policy      = data.aws_iam_policy_document.hbase_replica_main.json
+resource "aws_iam_policy" "intraday_S3_main" {
+  name        = "intraday-S3-main"
+  description = "Allow Intraday Cluster to write HBase data to the input bucket"
+  policy      = data.aws_iam_policy_document.intraday_emr_main.json
 
-  tags = { Name = "ReplicaHbaseS3Main" }
+  tags = { Name = "intraday-S3-main" }
 }
 
-resource "aws_iam_role_policy_attachment" "emr_ingest_hbase_main" {
-  role       = aws_iam_role.emr_hbase_replica.name
-  policy_arn = aws_iam_policy.replica_hbase_main.arn
+resource "aws_iam_role_policy_attachment" "intraday_emr_main" {
+  role       = aws_iam_role.intraday_emr.name
+  policy_arn = aws_iam_policy.intraday_S3_main.arn
 }
 
-data "aws_iam_policy_document" "replica_hbase_ec2" {
+data "aws_iam_policy_document" "intraday_emr_ec2" {
   statement {
     sid    = "EnableEC2PermissionsHost"
     effect = "Allow"
@@ -378,17 +363,17 @@ data "aws_iam_policy_document" "replica_hbase_ec2" {
   }
 }
 
-resource "aws_iam_policy" "replica_hbase_ec2" {
-  name        = "replica_hbase_ec2"
+resource "aws_iam_policy" "intraday_emr_ec2" {
+  name        = "intraday-emr-ec2"
   description = "Policy to allow access to modify Ec2 tags"
-  policy      = data.aws_iam_policy_document.replica_hbase_ec2.json
+  policy      = data.aws_iam_policy_document.intraday_emr_ec2.json
 
-  tags = { Name = "ingest_replica_ec2" }
+  tags = { Name = "intraday-emr-ec2" }
 }
 
-resource "aws_iam_role_policy_attachment" "ingest_hbase_ec2" {
-  role       = aws_iam_role.emr_hbase_replica.name
-  policy_arn = aws_iam_policy.replica_hbase_ec2.arn
+resource "aws_iam_role_policy_attachment" "intraday_emr_ec2" {
+  role       = aws_iam_role.intraday_emr.name
+  policy_arn = aws_iam_policy.intraday_emr_ec2.arn
 }
 
 #
@@ -396,10 +381,10 @@ resource "aws_iam_role_policy_attachment" "ingest_hbase_ec2" {
 ########        EMR Service role
 
 resource "aws_iam_role" "emr_service" {
-  name               = "replica_emr_service_role"
+  name               = "intraday-emr-service-role"
   assume_role_policy = data.aws_iam_policy_document.emr_assume_role.json
 
-  tags = { Name = "replica_emr_service" }
+  tags = { Name = "intraday-emr-service" }
 }
 
 data "aws_iam_policy_document" "emr_assume_role" {
@@ -455,11 +440,11 @@ data "aws_iam_policy_document" "emr_ebs_cmk" {
 }
 
 resource "aws_iam_policy" "emr_ebs_cmk" {
-  name        = "ReplicaEmrUseEbsCmk"
-  description = "Allow Ingestion EMR cluster to use EB CMK for encryption"
+  name        = "IntradayEmrUseEbsCmk"
+  description = "Allow Intraday EMR cluster to use EB CMK for encryption"
   policy      = data.aws_iam_policy_document.emr_ebs_cmk.json
 
-  tags = { Name = "ReplicaEmrUseEbsCmk" }
+  tags = { Name = "IntradayEmrUseEbsCmk" }
 }
 
 resource "aws_iam_role_policy_attachment" "emr_ebs_cmk" {
@@ -470,13 +455,13 @@ resource "aws_iam_role_policy_attachment" "emr_ebs_cmk" {
 #
 ########        Security groups
 
-resource "aws_security_group" "replica_emr_hbase_common" {
-  name                   = "replica_hbase_emr_common"
+resource "aws_security_group" "intraday_emr_common" {
+  name                   = "intraday-emr-common"
   description            = "Contains rules for both EMR cluster master nodes and EMR cluster slave nodes"
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
-  tags = { Name = "replica-hbase-emr-common" }
+  tags = { Name = "intraday-emr-common" }
 
 }
 
@@ -489,12 +474,12 @@ resource "aws_security_group_rule" "vpce_ingress" {
   to_port                  = 443
   protocol                 = "tcp"
   type                     = "ingress"
-  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
+  source_security_group_id = aws_security_group.intraday_emr_common.id
 }
 
 resource "aws_security_group_rule" "egress_to_vpce" {
   //todo: move to internal-compute vpc module
-  security_group_id = aws_security_group.replica_emr_hbase_common.id
+  security_group_id = aws_security_group.intraday_emr_common.id
 
   from_port                = 443
   to_port                  = 443
@@ -504,7 +489,7 @@ resource "aws_security_group_rule" "egress_to_vpce" {
 }
 
 
-resource "aws_security_group_rule" "replica_emr_hbase_egress_dks" {
+resource "aws_security_group_rule" "intraday_egress_dks" {
   description = "Allow outbound requests to DKS from EMR HBase"
   type        = "egress"
   from_port   = 8443
@@ -512,27 +497,27 @@ resource "aws_security_group_rule" "replica_emr_hbase_egress_dks" {
   protocol    = "tcp"
 
   cidr_blocks       = data.terraform_remote_state.crypto.outputs.dks_subnet["cidr_blocks"]
-  security_group_id = aws_security_group.replica_emr_hbase_common.id
+  security_group_id = aws_security_group.intraday_emr_common.id
 }
 
-resource "aws_security_group_rule" "emr_hbase_egress_metadata_store" {
-  description              = "Allow outbound requests to Metadata Store DB from EMR HBase"
+resource "aws_security_group_rule" "intraday_egress_metadata_store" {
+  description              = "Allow outbound requests to Metadata Store DB from intraday EMR"
   type                     = "egress"
   from_port                = 3306
   to_port                  = 3306
   protocol                 = "tcp"
   source_security_group_id = data.terraform_remote_state.ingest.outputs.metadata_store["rds"]["sg_id"]
-  security_group_id        = aws_security_group.replica_emr_hbase_common.id
+  security_group_id        = aws_security_group.intraday_emr_common.id
 }
 
-resource "aws_security_group_rule" "metadata_store_from_emr_hbase" {
+resource "aws_security_group_rule" "intraday_ingress_metadata_store" {
   type                     = "ingress"
   from_port                = 3306
   to_port                  = 3306
   protocol                 = "tcp"
-  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
+  source_security_group_id = aws_security_group.intraday_emr_common.id
   security_group_id        = data.terraform_remote_state.ingest.outputs.metadata_store["rds"]["sg_id"]
-  description              = "Metadata store from EMR HBase"
+  description              = "Allow inbound requests from Metadata Store DB to intraday EMR"
 }
 
 resource "aws_security_group_rule" "emr_common_egress_s3_vpce_https" {
@@ -543,7 +528,7 @@ resource "aws_security_group_rule" "emr_common_egress_s3_vpce_https" {
   protocol    = "tcp"
 
   prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["prefix_list_ids"]["s3"]]
-  security_group_id = aws_security_group.replica_emr_hbase_common.id
+  security_group_id = aws_security_group.intraday_emr_common.id
 }
 
 resource "aws_security_group_rule" "emr_common_egress_s3_vpce_http" {
@@ -554,7 +539,7 @@ resource "aws_security_group_rule" "emr_common_egress_s3_vpce_http" {
   protocol    = "tcp"
 
   prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["prefix_list_ids"]["s3"]]
-  security_group_id = aws_security_group.replica_emr_hbase_common.id
+  security_group_id = aws_security_group.intraday_emr_common.id
 }
 
 resource "aws_security_group_rule" "emr_common_egress_dynamodb_vpce_https" {
@@ -565,7 +550,7 @@ resource "aws_security_group_rule" "emr_common_egress_dynamodb_vpce_https" {
   protocol    = "tcp"
 
   prefix_list_ids   = [data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["prefix_list_ids"]["dynamodb"]]
-  security_group_id = aws_security_group.replica_emr_hbase_common.id
+  security_group_id = aws_security_group.intraday_emr_common.id
 }
 
 resource "aws_security_group_rule" "emr_common_egress_between_nodes" {
@@ -574,8 +559,8 @@ resource "aws_security_group_rule" "emr_common_egress_between_nodes" {
   from_port                = 0
   to_port                  = 0
   protocol                 = "-1"
-  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
-  security_group_id        = aws_security_group.replica_emr_hbase_common.id
+  source_security_group_id = aws_security_group.intraday_emr_common.id
+  security_group_id        = aws_security_group.intraday_emr_common.id
 }
 
 resource "aws_security_group_rule" "egress_emr_common_to_internet" {
@@ -586,13 +571,13 @@ resource "aws_security_group_rule" "egress_emr_common_to_internet" {
   protocol          = "tcp"
   from_port         = 3128
   to_port           = 3128
-  security_group_id = aws_security_group.replica_emr_hbase_common.id
+  security_group_id = aws_security_group.intraday_emr_common.id
 }
 
 resource "aws_security_group_rule" "ingress_emr_common_to_internet" {
   description              = "Allow EMR access to Internet Proxy (for ACM-PCA)"
   type                     = "ingress"
-  source_security_group_id = aws_security_group.replica_emr_hbase_common.id
+  source_security_group_id = aws_security_group.intraday_emr_common.id
   protocol                 = "tcp"
   from_port                = 3128
   to_port                  = 3128
@@ -602,24 +587,24 @@ resource "aws_security_group_rule" "ingress_emr_common_to_internet" {
 
 # EMR will add more rules to this SG during cluster provisioning;
 # see https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-man-sec-groups.html#emr-sg-elasticmapreduce-master-private
-resource "aws_security_group" "emr_hbase_master" {
-  name                   = "replica_hbase_emr_master"
+resource "aws_security_group" "intraday_emr_master" {
+  name                   = "intraday-emr-master"
   description            = "Contains rules for EMR cluster master nodes"
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
-  tags = { Name = "hbase-emr-master" }
+  tags = { Name = "intraday-emr-master" }
 }
 
 # EMR will add more rules to this SG during cluster provisioning;
 # see https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-man-sec-groups.html#emr-sg-elasticmapreduce-master-private
-resource "aws_security_group" "replica_emr_hbase_slave" {
-  name                   = "replica_hbase_emr_slave"
+resource "aws_security_group" "intraday-emr-slave" {
+  name                   = "intraday-emr-slave"
   description            = "Contains rules for EMR cluster slave nodes"
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
-  tags = { Name = "hbase-emr-slave" }
+  tags = { Name = "intraday-emr-slave" }
 }
 
 
@@ -630,24 +615,24 @@ resource "aws_security_group_rule" "emr_server_ingress_from_service" {
   from_port                = 9443
   to_port                  = 9443
   protocol                 = "tcp"
-  source_security_group_id = aws_security_group.emr_hbase_master.id
-  security_group_id        = aws_security_group.emr_hbase_service.id
+  source_security_group_id = aws_security_group.intraday_emr_master.id
+  security_group_id        = aws_security_group.intraday_emr_service.id
 }
 
-resource "aws_security_group" "emr_hbase_service" {
-  name                   = "replica_hbase_emr_service"
+resource "aws_security_group" "intraday_emr_service" {
+  name                   = "intraday-emr-service"
   description            = "Contains rules automatically added by the EMR service itself. See https://docs.aws.amazon.com/emr/latest/ManagementGuide/emr-man-sec-groups.html#emr-sg-elasticmapreduce-sa-private"
   revoke_rules_on_delete = true
   vpc_id                 = data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["vpc"]["id"]
 
-  tags = { Name = "emr-hbase-service" }
+  tags = { Name = "intraday-emr-service" }
 }
 
-resource "aws_s3_bucket_object" "emr_logs_folder" {
+resource "aws_s3_bucket_object" "intraday_emr_logs_folder" {
   bucket = data.terraform_remote_state.security-tools.outputs.logstore_bucket["id"]
   acl    = "private"
-  key    = "emr/aws-read-replica/"
+  key    = "emr/aws-intraday/"
   source = "/dev/null"
 
-  tags = { Name = "emr-replica-logs-folder" }
+  tags = { Name = "intraday-emr-logs-folder" }
 }

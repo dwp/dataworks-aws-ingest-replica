@@ -55,9 +55,9 @@ resource "aws_lambda_function" "intraday_cron_launcher" {
   timeout          = 900
   environment {
     variables = {
-      job_status_table_name   = aws_dynamodb_table.job_status.name
+      job_status_table_name   = aws_dynamodb_table.intraday_job_status.name
       emr_config_bucket       = data.terraform_remote_state.common.outputs.config_bucket["id"]
-      emr_config_folder       = local.replica_emr_configuration_files_s3_prefix
+      emr_config_folder       = local.ingest_emr_configuration_files_s3_prefix
       sns_topic_arn           = aws_sns_topic.hbase_incremental_refresh_sns.arn
       collections_secret_name = local.collections_secret_name
     }
@@ -142,8 +142,8 @@ resource "aws_iam_policy" "intraday_cron_lambda_policy" {
           "dynamodb:PartiQLSelect"
         ],
         Resource : [
-          aws_dynamodb_table.job_status.arn,
-          "${aws_dynamodb_table.job_status.arn}/index/*"
+          aws_dynamodb_table.intraday_job_status.arn,
+          "${aws_dynamodb_table.intraday_job_status.arn}/index/*"
         ]
       },
       {
