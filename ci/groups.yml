@@ -10,7 +10,3 @@ groups:
   - name: update-pipeline
     jobs:
       - update-pipeline
-  - name: utility
-    jobs:
-      - start-cluster-dev
-      - terminate-replica

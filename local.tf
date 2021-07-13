@@ -18,7 +18,7 @@ locals {
   }
 
   overridden_tags = {
-    Role         = "ingest_replica"
+    Role         = "intraday"
     Owner        = "dataworks-aws-ingest-replica"
     Persistence  = local.persistence_tag_value[local.environment]
     AutoShutdown = local.auto_shutdown_tag_value[local.environment]
@@ -39,7 +39,7 @@ locals {
     management     = "management"
   }
 
-  emr_cluster_name = "ingest-replica-incremental"
+  emr_cluster_name = "intraday-incremental"
 
   emr_log_level = {
     development = "DEBUG"
@@ -61,12 +61,12 @@ locals {
     production  = ["HBase", "Hive", "Spark"]
   }
 
-  replica_emr_bootstrap_scripts_s3_prefix   = "component/ingest_replica/bootstrap_scripts"
-  replica_emr_step_scripts_s3_prefix        = "component/ingest_replica/step_scripts"
-  replica_emr_configuration_files_s3_prefix = "emr/ingest_replica"
+  ingest_emr_bootstrap_scripts_s3_prefix   = "component/ingest_replica/bootstrap_scripts"
+  ingest_emr_step_scripts_s3_prefix        = "component/ingest_replica/step_scripts"
+  ingest_emr_configuration_files_s3_prefix = "emr/ingest_replica"
 
 
-  ingest_hbase_truststore_certs = {
+  intraday_truststore_certs = {
     development = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
     qa          = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
     integration = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
@@ -74,20 +74,12 @@ locals {
     production  = "s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/ucfs/root_ca_old.pem,s3://${data.terraform_remote_state.certificate_authority.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem,s3://${data.terraform_remote_state.mgmt_ca.outputs.public_cert_bucket["id"]}/ca_certificates/dataworks/dataworks_root_ca.pem"
   }
 
-  ingest_hbase_truststore_aliases = {
+  intraday_truststore_aliases = {
     development = ["ucfs_ca", "dataworks_root_ca", "dataworks_mgt_root_ca"]
     qa          = ["ucfs_ca", "dataworks_root_ca", "dataworks_mgt_root_ca"]
     integration = ["ucfs_ca", "dataworks_root_ca", "dataworks_mgt_root_ca"]
     preprod     = ["ucfs_ca", "dataworks_root_ca", "dataworks_mgt_root_ca"]
     production  = ["ucfs_ca", "ucfs_ca_old", "dataworks_root_ca", "dataworks_mgt_root_ca"]
-  }
-
-  s3_manifest_prefix = {
-    development = "business-data/manifest"
-    qa          = "business-data/manifest"
-    integration = "business-data/manifest"
-    preprod     = "business-data/manifest"
-    production  = "business-data/manifest"
   }
 
   dns_subdomain = {

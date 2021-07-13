@@ -1,5 +1,5 @@
-resource "aws_dynamodb_table" "job_status" {
-  name         = "intra-day"
+resource "aws_dynamodb_table" "intraday_job_status" {
+  name         = "intraday-job-status"
   hash_key     = "CorrelationId"
   range_key    = "Collection"
   billing_mode = "PAY_PER_REQUEST"
@@ -27,5 +27,5 @@ resource "aws_dynamodb_table" "job_status" {
     non_key_attributes = ["JobStatus", "ProcessedDataStart", "ProcessedDataEnd"]
   }
 
-  tags = { Name = "hbase_incremental_refresh" }
+  tags = { Name = "intraday-job-status" }
 }

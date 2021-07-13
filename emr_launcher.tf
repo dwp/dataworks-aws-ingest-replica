@@ -7,11 +7,11 @@ variable "emr_launcher_zip" {
   }
 }
 
-resource "aws_lambda_function" "incremental_ingest_replica_emr_launcher" {
+resource "aws_lambda_function" "intraday_emr_launcher" {
   filename      = "${var.emr_launcher_zip["base_path"]}/emr-launcher-${var.emr_launcher_zip["version"]}.zip"
-  description   = "Launches hbase-replica for incremental dataset generation"
-  function_name = "incremental_ingest_replica_emr_launcher"
-  role          = aws_iam_role.incremental_ingest_replica_emr_launcher_lambda.arn
+  description   = "Launches intraday cluster for incremental dataset generation"
+  function_name = "intraday-emr-launcher"
+  role          = aws_iam_role.intraday_emr_launcher_lambda.arn
   handler       = "emr_launcher.handler.handler"
   runtime       = "python3.7"
   source_code_hash = filebase64sha256(
@@ -27,22 +27,22 @@ resource "aws_lambda_function" "incremental_ingest_replica_emr_launcher" {
   environment {
     variables = {
       EMR_LAUNCHER_CONFIG_S3_BUCKET = data.terraform_remote_state.common.outputs.config_bucket["id"]
-      EMR_LAUNCHER_CONFIG_S3_FOLDER = local.replica_emr_configuration_files_s3_prefix
+      EMR_LAUNCHER_CONFIG_S3_FOLDER = local.ingest_emr_configuration_files_s3_prefix
       EMR_LAUNCHER_LOG_LEVEL        = "debug"
     }
   }
 
-  tags = { Name = "incremental_ingest_replica_emr_launcher" }
+  tags = { Name = "intraday-emr-launcher" }
 }
 
-resource "aws_iam_role" "incremental_ingest_replica_emr_launcher_lambda" {
-  name               = "incremental-ingest-replica-emr-launcher-lambda-role"
-  assume_role_policy = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_assume_policy.json
+resource "aws_iam_role" "intraday_emr_launcher_lambda" {
+  name               = "intraday-emr-launcher-lambda-role"
+  assume_role_policy = data.aws_iam_policy_document.intraday_emr_launcher_assume_role.json
 
-  tags = { Name = "incremental-ingest-replica-emr-launcher-lambda" }
+  tags = { Name = "intraday-emr-launcher-lambda" }
 }
 
-data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_assume_policy" {
+data "aws_iam_policy_document" "intraday_emr_launcher_assume_role" {
   statement {
     sid     = "EMRLauncherLambdaAssumeRolePolicy"
     effect  = "Allow"
@@ -55,14 +55,14 @@ data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_assume_p
   }
 }
 
-data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_read_s3" {
+data "aws_iam_policy_document" "intraday_emr_launcher_read_s3" {
   statement {
     effect = "Allow"
     actions = [
       "s3:GetObject",
     ]
     resources = [
-      "arn:aws:s3:::${data.terraform_remote_state.common.outputs.config_bucket["id"]}/${local.replica_emr_configuration_files_s3_prefix}/*"
+      "arn:aws:s3:::${data.terraform_remote_state.common.outputs.config_bucket["id"]}/${local.ingest_emr_configuration_files_s3_prefix}/*"
     ]
   }
   statement {
@@ -76,7 +76,7 @@ data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_read_s3"
   }
 }
 
-data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_runjobflow" {
+data "aws_iam_policy_document" "intraday_emr_launcher_runjobflow" {
   statement {
     effect = "Allow"
     actions = [
@@ -89,7 +89,7 @@ data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_runjobfl
   }
 }
 
-data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_pass_role" {
+data "aws_iam_policy_document" "intraday_emr_launcher_pass_role" {
   statement {
     effect = "Allow"
     actions = [
@@ -101,7 +101,7 @@ data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_pass_rol
   }
 }
 
-data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_getsecrets" {
+data "aws_iam_policy_document" "intraday_emr_launcher_getsecrets" {
   statement {
     effect = "Allow"
 
@@ -115,75 +115,75 @@ data "aws_iam_policy_document" "incremental_ingest_replica_emr_launcher_getsecre
   }
 }
 
-resource "aws_iam_policy" "incremental_ingest_replica_repository_emr_launcher_read_s3" {
-  name        = "incremental-ingest-replica-ReadS3"
-  description = "Allow incremental-ingest-replica emr-launcher to read from S3 bucket"
-  policy      = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_read_s3.json
+resource "aws_iam_policy" "intraday_emr_launcher_read_s3" {
+  name        = "intraday-emr-launcher-ReadS3"
+  description = "Allow intraday emr-launcher to read from S3 bucket"
+  policy      = data.aws_iam_policy_document.intraday_emr_launcher_read_s3.json
 
-  tags = { Name = "incremental-ingest-replica-ReadS3" }
+  tags = { Name = "intraday-emr-launcher-ReadS3" }
 }
 
-resource "aws_iam_policy" "incremental_ingest_replica_emr_launcher_runjobflow" {
-  name        = "incremental-ingest-replica-RunJobFlow"
-  description = "allow incremental-ingest-replica emr-launcher to run job flow"
-  policy      = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_runjobflow.json
+resource "aws_iam_policy" "intraday_emr_launcher_runjobflow" {
+  name        = "intraday-emr-launcher-RunJobFlow"
+  description = "Allow intraday emr-launcher to run job flow"
+  policy      = data.aws_iam_policy_document.intraday_emr_launcher_runjobflow.json
 
-  tags = { Name = "incremental-ingest-replica-RunJobFlow" }
+  tags = { Name = "intraday-emr-launcher-RunJobFlow" }
 }
 
-resource "aws_iam_policy" "incremental_ingest_replica_emr_launcher_pass_role" {
-  name        = "incremental-ingest-replica-PassRole"
-  description = "Allow incremental-ingest-replica emr-launcher to pass role"
-  policy      = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_pass_role.json
+resource "aws_iam_policy" "intraday_emr_launcher_passrole" {
+  name        = "intraday-emr-launcher-PassRole"
+  description = "Allow intraday emr-launcher to pass role"
+  policy      = data.aws_iam_policy_document.intraday_emr_launcher_pass_role.json
 
-  tags = { Name = "incremental-ingest-replica-PassRole" }
+  tags = { Name = "intraday-emr-launcher-PassRole" }
 }
 
-resource "aws_iam_policy" "incremental_ingest_replica_emr_launcher_getsecrets" {
-  name        = "incremental-ingest-replica-getsecrets"
-  description = "Allow incremental-ingest-replica emr-launcher to get metastore secret"
-  policy      = data.aws_iam_policy_document.incremental_ingest_replica_emr_launcher_getsecrets.json
+resource "aws_iam_policy" "intraday_emr_launcher_getsecrets" {
+  name        = "intraday-emr-launcher-getsecrets"
+  description = "Allow intraday emr-launcher emr-launcher to get metastore secret"
+  policy      = data.aws_iam_policy_document.intraday_emr_launcher_getsecrets.json
 
-  tags = { Name = "incremental-ingest-replica-getsecrets" }
+  tags = { Name = "intraday-emr-launcher-getsecrets" }
 }
 
-resource "aws_iam_role_policy_attachment" "incremental_ingest_replica_emr_launcher_read_s3" {
-  role       = aws_iam_role.incremental_ingest_replica_emr_launcher_lambda.name
-  policy_arn = aws_iam_policy.incremental_ingest_replica_repository_emr_launcher_read_s3.arn
+resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_readS3" {
+  role       = aws_iam_role.intraday_emr_launcher_lambda.name
+  policy_arn = aws_iam_policy.intraday_emr_launcher_read_s3.arn
 }
 
-resource "aws_iam_role_policy_attachment" "incremental_ingest_replica_emr_launcher_runjobflow" {
-  role       = aws_iam_role.incremental_ingest_replica_emr_launcher_lambda.name
-  policy_arn = aws_iam_policy.incremental_ingest_replica_emr_launcher_runjobflow.arn
+resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_runjobflow" {
+  role       = aws_iam_role.intraday_emr_launcher_lambda.name
+  policy_arn = aws_iam_policy.intraday_emr_launcher_runjobflow.arn
 }
 
-resource "aws_iam_role_policy_attachment" "incremental_ingest_replica_emr_launcher_pass_role" {
-  role       = aws_iam_role.incremental_ingest_replica_emr_launcher_lambda.name
-  policy_arn = aws_iam_policy.incremental_ingest_replica_emr_launcher_pass_role.arn
+resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_passrole" {
+  role       = aws_iam_role.intraday_emr_launcher_lambda.name
+  policy_arn = aws_iam_policy.intraday_emr_launcher_passrole.arn
 }
 
 
-resource "aws_iam_role_policy_attachment" "incremental_ingest_replica_emr_launcher_policy_execution" {
-  role       = aws_iam_role.incremental_ingest_replica_emr_launcher_lambda.name
+resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_policy_execution" {
+  role       = aws_iam_role.intraday_emr_launcher_lambda.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
 }
 
-resource "aws_iam_role_policy_attachment" "incremental_ingest_replica_emr_launcher_getsecrets" {
-  role       = aws_iam_role.incremental_ingest_replica_emr_launcher_lambda.name
-  policy_arn = aws_iam_policy.incremental_ingest_replica_emr_launcher_getsecrets.arn
+resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_getsecrets" {
+  role       = aws_iam_role.intraday_emr_launcher_lambda.name
+  policy_arn = aws_iam_policy.intraday_emr_launcher_getsecrets.arn
 }
 
 
-resource "aws_sns_topic_subscription" "incremental_trigger_subscription" {
+resource "aws_sns_topic_subscription" "intraday_trigger" {
   topic_arn = aws_sns_topic.hbase_incremental_refresh_sns.arn
   protocol  = "lambda"
-  endpoint  = aws_lambda_function.incremental_ingest_replica_emr_launcher.arn
+  endpoint  = aws_lambda_function.intraday_emr_launcher.arn
 }
 
-resource "aws_lambda_permission" "adg_emr_launcher_incrementals_subscription_eccs" {
+resource "aws_lambda_permission" "intraday_emr_launcher" {
   statement_id  = "LaunchIncrementalEMRLambda"
   action        = "lambda:InvokeFunction"
-  function_name = aws_lambda_function.incremental_ingest_replica_emr_launcher.function_name
+  function_name = aws_lambda_function.intraday_emr_launcher.function_name
   principal     = "sns.amazonaws.com"
   source_arn    = aws_sns_topic.hbase_incremental_refresh_sns.arn
 }
