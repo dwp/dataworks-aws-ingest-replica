@@ -28,10 +28,7 @@ resource "aws_cloudwatch_event_rule" "intraday_schedule" {
   name                = "intraday-refresh-${each.key}"
   description         = "scheduler for incremental refresh, days: ${each.key}"
   schedule_expression = each.value
-  tags = {
-    Name        = "intraday-refresh-${each.key}",
-    Persistence = "Ignore"
-  }
+  tags                = { Name = "intraday-refresh-${each.key}" }
 }
 
 resource "aws_cloudwatch_event_target" "intraday_cron_lambda" {
@@ -65,10 +62,7 @@ resource "aws_lambda_function" "intraday_cron_launcher" {
       collections_secret_name = local.collections_secret_name
     }
   }
-  tags = {
-    Name        = "intraday-cron-launcher",
-    Persistence = "Ignore"
-  }
+  tags = { Name = "intraday-cron-launcher" }
 }
 
 resource "aws_iam_role" "intraday_cron_lambda_role" {
@@ -88,10 +82,7 @@ resource "aws_iam_role" "intraday_cron_lambda_role" {
     ]
   })
 
-  tags = {
-    Name        = "intraday-cron-lambda-role",
-    Persistence = "Ignore"
-  }
+  tags = { Name = "intraday-cron-lambda-role" }
 }
 
 resource "aws_lambda_permission" "allow_cloudwatch" {
@@ -170,10 +161,7 @@ resource "aws_iam_policy" "intraday_cron_lambda_policy" {
     ]
   })
 
-  tags = {
-    Name        = "intraday-cron-lambda-policy",
-    Persistence = "Ignore"
-  }
+  tags = { Name = "intraday-cron-lambda-policy" }
 }
 
 resource "aws_iam_policy_attachment" "intraday_cron_lambda" {

@@ -27,8 +27,5 @@ resource "aws_dynamodb_table" "intraday_job_status" {
     non_key_attributes = ["JobStatus", "ProcessedDataStart", "ProcessedDataEnd"]
   }
 
-  tags = {
-    Name        = "intraday-job-status",
-    Persistence = "Ignore"
-  }
+  tags = { Name = "intraday-job-status" }
 }
