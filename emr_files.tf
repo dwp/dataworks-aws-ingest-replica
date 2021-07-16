@@ -159,4 +159,6 @@ resource "aws_s3_bucket_object" "cloudwatch_sh" {
       aws_default_region              = var.region
       step_log_path                   = local.pyspark_log_path
   })
+
+  tags = { Name = "cloudwatch" }
 }
