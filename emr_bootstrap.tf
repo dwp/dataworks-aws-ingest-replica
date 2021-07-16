@@ -17,7 +17,8 @@ resource "aws_s3_bucket_object" "installer" {
   )
 
   tags = {
-    Name = "intraday-emr-installer"
+    Name        = "intraday-emr-installer",
+    Persistence = "Ignore"
   }
 }
 
@@ -38,7 +39,10 @@ resource "aws_s3_bucket_object" "certificate_setup" {
       full_no_proxy                 = join(",", data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["no_proxy_list"])
   })
 
-  tags = { Name = "intraday-emr-certificate-setup" }
+  tags = {
+    Name        = "intraday-emr-certificate-setup",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "unique_hostname" {
@@ -52,7 +56,10 @@ resource "aws_s3_bucket_object" "unique_hostname" {
       name               = "hbase-replica"
   })
 
-  tags = { Name = "intraday-emr-set-unique-hostname" }
+  tags = {
+    Name        = "intraday-emr-set-unique-hostname",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "start_ssm_script" {
@@ -61,7 +68,10 @@ resource "aws_s3_bucket_object" "start_ssm_script" {
   content    = data.local_file.start_ssm_script.content
   kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk["arn"]
 
-  tags = { Name = "intraday-emr-start-ssm-script" }
+  tags = {
+    Name        = "intraday-emr-start-ssm-script",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
@@ -70,5 +80,8 @@ resource "aws_s3_bucket_object" "amazon_root_ca1_pem" {
   content    = data.local_file.amazon_root_ca_1.content
   kms_key_id = data.terraform_remote_state.common.outputs.config_bucket_cmk["arn"]
 
-  tags = { Name = "amazon-root-ca1-pem" }
+  tags = {
+    Name        = "amazon-root-ca1-pem",
+    Persistence = "Ignore"
+  }
 }

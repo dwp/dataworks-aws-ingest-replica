@@ -32,14 +32,20 @@ resource "aws_lambda_function" "intraday_emr_launcher" {
     }
   }
 
-  tags = { Name = "intraday-emr-launcher" }
+  tags = {
+    Name        = "intraday-emr-launcher",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_role" "intraday_emr_launcher_lambda" {
   name               = "intraday-emr-launcher-lambda-role"
   assume_role_policy = data.aws_iam_policy_document.intraday_emr_launcher_assume_role.json
 
-  tags = { Name = "intraday-emr-launcher-lambda" }
+  tags = {
+    Name        = "intraday-emr-launcher-lambda",
+    Persistence = "Ignore"
+  }
 }
 
 data "aws_iam_policy_document" "intraday_emr_launcher_assume_role" {
@@ -120,7 +126,10 @@ resource "aws_iam_policy" "intraday_emr_launcher_read_s3" {
   description = "Allow intraday emr-launcher to read from S3 bucket"
   policy      = data.aws_iam_policy_document.intraday_emr_launcher_read_s3.json
 
-  tags = { Name = "intraday-emr-launcher-ReadS3" }
+  tags = {
+    Name        = "intraday-emr-launcher-ReadS3",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_policy" "intraday_emr_launcher_runjobflow" {
@@ -128,7 +137,10 @@ resource "aws_iam_policy" "intraday_emr_launcher_runjobflow" {
   description = "Allow intraday emr-launcher to run job flow"
   policy      = data.aws_iam_policy_document.intraday_emr_launcher_runjobflow.json
 
-  tags = { Name = "intraday-emr-launcher-RunJobFlow" }
+  tags = {
+    Name        = "intraday-emr-launcher-RunJobFlow",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_policy" "intraday_emr_launcher_passrole" {
@@ -136,7 +148,10 @@ resource "aws_iam_policy" "intraday_emr_launcher_passrole" {
   description = "Allow intraday emr-launcher to pass role"
   policy      = data.aws_iam_policy_document.intraday_emr_launcher_pass_role.json
 
-  tags = { Name = "intraday-emr-launcher-PassRole" }
+  tags = {
+    Name        = "intraday-emr-launcher-PassRole",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_policy" "intraday_emr_launcher_getsecrets" {
@@ -144,7 +159,10 @@ resource "aws_iam_policy" "intraday_emr_launcher_getsecrets" {
   description = "Allow intraday emr-launcher emr-launcher to get metastore secret"
   policy      = data.aws_iam_policy_document.intraday_emr_launcher_getsecrets.json
 
-  tags = { Name = "intraday-emr-launcher-getsecrets" }
+  tags = {
+    Name        = "intraday-emr-launcher-getsecrets",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_readS3" {

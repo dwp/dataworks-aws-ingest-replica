@@ -31,14 +31,20 @@ resource "aws_iam_role" "intraday_emr" {
   name               = "intraday-emr"
   assume_role_policy = data.aws_iam_policy_document.ec2_assume_role.json
 
-  tags = { Name = "intraday-emr" }
+  tags = {
+    Name        = "intraday-emr",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_instance_profile" "intraday_emr" {
   name = "intraday-emr"
   role = aws_iam_role.intraday_emr.id
 
-  tags = { Name = "intraday-emr" }
+  tags = {
+    Name        = "intraday-emr",
+    Persistence = "Ignore"
+  }
 }
 
 data "aws_iam_policy_document" "ec2_assume_role" {
@@ -342,7 +348,10 @@ resource "aws_iam_policy" "intraday_S3_main" {
   description = "Allow Intraday Cluster to write HBase data to the input bucket"
   policy      = data.aws_iam_policy_document.intraday_emr_main.json
 
-  tags = { Name = "intraday-S3-main" }
+  tags = {
+    Name        = "intraday-S3-main",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "intraday_emr_main" {
@@ -368,7 +377,10 @@ resource "aws_iam_policy" "intraday_emr_ec2" {
   description = "Policy to allow access to modify Ec2 tags"
   policy      = data.aws_iam_policy_document.intraday_emr_ec2.json
 
-  tags = { Name = "intraday-emr-ec2" }
+  tags = {
+    Name        = "intraday-emr-ec2",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "intraday_emr_ec2" {
@@ -384,7 +396,10 @@ resource "aws_iam_role" "emr_service" {
   name               = "intraday-emr-service-role"
   assume_role_policy = data.aws_iam_policy_document.emr_assume_role.json
 
-  tags = { Name = "intraday-emr-service" }
+  tags = {
+    Name        = "intraday-emr-service",
+    Persistence = "Ignore"
+  }
 }
 
 data "aws_iam_policy_document" "emr_assume_role" {
@@ -444,7 +459,10 @@ resource "aws_iam_policy" "emr_ebs_cmk" {
   description = "Allow Intraday EMR cluster to use EB CMK for encryption"
   policy      = data.aws_iam_policy_document.emr_ebs_cmk.json
 
-  tags = { Name = "IntradayEmrUseEbsCmk" }
+  tags = {
+    Name        = "IntradayEmrUseEbsCmk",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_iam_role_policy_attachment" "emr_ebs_cmk" {
@@ -634,5 +652,8 @@ resource "aws_s3_bucket_object" "intraday_emr_logs_folder" {
   key    = "emr/aws-intraday/"
   source = "/dev/null"
 
-  tags = { Name = "intraday-emr-logs-folder" }
+  tags = {
+    Name        = "intraday-emr-logs-folder",
+    Persistence = "Ignore"
+  }
 }
