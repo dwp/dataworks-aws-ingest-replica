@@ -27,7 +27,10 @@ resource "aws_s3_bucket_object" "configurations_yaml" {
       s3_published_bucket                            = data.terraform_remote_state.common.outputs.published_bucket["id"]
   })
 
-  tags = { Name = "configurations.yaml" }
+  tags = {
+    Name        = "configurations.yaml",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "cluster_yaml" {
@@ -48,7 +51,10 @@ resource "aws_s3_bucket_object" "cluster_yaml" {
       spark_applications   = local.emr_applications[local.environment]
   })
 
-  tags = { Name = "cluster.yaml" }
+  tags = {
+    Name        = "cluster.yaml",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "instances_yaml" {
@@ -76,7 +82,10 @@ resource "aws_s3_bucket_object" "instances_yaml" {
       core_instance_ebs_vol_type = var.hbase_core_ebs_type[local.environment]
   })
 
-  tags = { Name = "instances.yaml" }
+  tags = {
+    Name        = "instances.yaml",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "steps_yaml" {
@@ -90,7 +99,10 @@ resource "aws_s3_bucket_object" "steps_yaml" {
       pyspark_action_on_failure = "TERMINATE_CLUSTER"
   })
 
-  tags = { Name = "steps.yaml" }
+  tags = {
+    Name        = "steps.yaml",
+    Persistence = "Ignore"
+  }
 
 }
 
@@ -107,7 +119,10 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
       job_status_table_name     = aws_dynamodb_table.intraday_job_status.name
   })
 
-  tags = { Name = "emr-step-generate-dataset-from-hbase" }
+  tags = {
+    Name        = "emr-step-generate-dataset-from-hbase",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "generate_dataset_from_adg" {
@@ -115,7 +130,10 @@ resource "aws_s3_bucket_object" "generate_dataset_from_adg" {
   key     = "${local.ingest_emr_step_scripts_s3_prefix}/generate_dataset_from_adg.py"
   content = file("files/steps/generate_dataset_from_adg.py")
 
-  tags = { Name = "emr-step-generate-dataset-from-adg" }
+  tags = {
+    Name        = "emr-step-generate-dataset-from-adg",
+    Persistence = "Ignore"
+  }
 }
 
 
@@ -132,7 +150,10 @@ resource "aws_s3_bucket_object" "download_scripts" {
       step_scripts_location      = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], local.ingest_emr_step_scripts_s3_prefix)
   })
 
-  tags = { Name = "download_scripts" }
+  tags = {
+    Name        = "download_scripts",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "logging_sh" {
@@ -140,7 +161,10 @@ resource "aws_s3_bucket_object" "logging_sh" {
   key     = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/logging.sh"
   content = file("files/bootstrap/logging.sh")
 
-  tags = { Name = "logging" }
+  tags = {
+    Name        = "logging",
+    Persistence = "Ignore"
+  }
 }
 
 resource "aws_s3_bucket_object" "cloudwatch_sh" {
@@ -159,4 +183,9 @@ resource "aws_s3_bucket_object" "cloudwatch_sh" {
       aws_default_region              = var.region
       step_log_path                   = local.pyspark_log_path
   })
+
+  tags = {
+    Name        = "cloudwatch",
+    Persistence = "Ignore"
+  }
 }

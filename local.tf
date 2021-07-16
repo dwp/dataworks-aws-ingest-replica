@@ -2,9 +2,9 @@ locals {
   collections_secret_name = "/ingest-replica/collections"
 
   persistence_tag_value = {
-    development = "Ignore" // "mon-fri,08:00-18:00"
+    development = "mon-fri,08:00-18:00"
     qa          = "Ignore"
-    integration = "Ignore" // "mon-fri,08:00-18:00"
+    integration = "mon-fri,08:00-18:00"
     preprod     = "Ignore"
     production  = "Ignore"
   }
