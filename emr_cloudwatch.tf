@@ -12,44 +12,29 @@ locals {
 resource "aws_cloudwatch_log_group" "intraday" {
   name              = local.cw_agent_lg_name
   retention_in_days = 180
-  tags = {
-    Name        = "intraday",
-    Persistence = "Ignore"
-  }
+  tags              = { Name = "intraday" }
 }
 
 resource "aws_cloudwatch_log_group" "bootstrap_actions" {
   name              = local.cw_agent_bootstrap_lg_name
   retention_in_days = 180
-  tags = {
-    Name        = "intraday-bootstrap-actions",
-    Persistence = "Ignore"
-  }
+  tags              = { Name = "intraday-bootstrap-actions" }
 }
 
 resource "aws_cloudwatch_log_group" "steps" {
   name              = local.cw_agent_steps_lg_name
   retention_in_days = 180
-  tags = {
-    Name        = "intraday-incremental-steps",
-    Persistence = "Ignore"
-  }
+  tags              = { Name = "intraday-incremental-steps" }
 }
 
 resource "aws_cloudwatch_log_group" "yarn_spark" {
   name              = local.cw_agent_yarnspark_lg_name
   retention_in_days = 180
-  tags = {
-    Name        = "intraday-yarn-spark",
-    Persistence = "Ignore"
-  }
+  tags              = { Name = "intraday-yarn-spark" }
 }
 
 resource "aws_cloudwatch_log_group" "tests" {
   name              = local.cw_agent_tests_lg_name
   retention_in_days = 180
-  tags = {
-    Name        = "intraday-tests",
-    Persistence = "Ignore"
-  }
+  tags              = { Name = "intraday-tests" }
 }

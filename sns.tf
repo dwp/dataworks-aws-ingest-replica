@@ -1,10 +1,7 @@
 resource "aws_sns_topic" "hbase_incremental_refresh_sns" {
   name = "hbase_incremental_refresh"
 
-  tags = {
-    Name        = "hbase_incremental_refresh",
-    Persistence = "Ignore"
-  }
+  tags = { Name = "hbase_incremental_refresh" }
 }
 
 resource "aws_sns_topic_policy" "ingest_replica_trigger" {
