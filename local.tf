@@ -49,9 +49,9 @@ locals {
     production  = "INFO"
   }
 
-  input_bucket_business_data_root = "business-data"
-  hbase_rootdir_prefix            = "${local.input_bucket_business_data_root}/${var.hbase_rootdir[local.environment]}"
-  hbase_rootdir                   = "${data.terraform_remote_state.ingest.outputs.s3_buckets["input_bucket"]}/${local.hbase_rootdir_prefix}"
+  hbase_root_bucket = data.terraform_remote_state.internal_compute.outputs.aws_emr_cluster["root_bucket"]
+  hbase_root_prefix = data.terraform_remote_state.internal_compute.outputs.aws_emr_cluster["root_directory"]
+  hbase_full_dir = "s3://${local.hbase_root_bucket}/${local.hbase_root_prefix}"
 
   emr_applications = {
     development = ["HBase", "Hive", "Spark"]

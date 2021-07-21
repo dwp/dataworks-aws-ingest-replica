@@ -8,19 +8,6 @@ variable "emr_release" {
   }
 }
 
-# Must start with "hbase-" to honour the input bucket lifecycle_rule 'hbase-root-dir in business-data'"
-variable "hbase_rootdir" {
-  type        = map(string)
-  description = "The root directory in s3 used for the files HBase stores. Must start with `hbase-` see lifecycle_rules"
-  default = {
-    development = "hbase-storage-dev"
-    qa          = "hbase-storage-qa"
-    integration = "hbase-storage"
-    preprod     = "hbase-storage"
-    production  = "hbase-corporate-storage-25-october-2020"
-  }
-}
-
 variable "hbase_ssmenabled" {
   type        = map(string)
   description = "Determines whether SSM is enabedl"
