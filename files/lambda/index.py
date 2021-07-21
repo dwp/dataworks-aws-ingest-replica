@@ -126,13 +126,13 @@ def launch_cluster(
             },
             "additional_step_args": {
                 "spark-submit": [
+                    "scheduled",
                     "--correlation_id",
                     str(correlation_id),
                     "--triggered_time",
                     str(triggered_time),
                     "--end_time",
                     str(new_end_time),
-                    "--tracked",
                     "--collections",
                     " ".join(collections),
                 ]
