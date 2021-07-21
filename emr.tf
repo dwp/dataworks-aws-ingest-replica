@@ -92,7 +92,7 @@ data "aws_iam_policy_document" "intraday_emr_main" {
 
     resources = [
       # This must track the hbase root dir
-      "${data.terraform_remote_state.ingest.outputs.s3_input_bucket_arn["input_bucket"]}/${local.hbase_rootdir_prefix}/*",
+      "arn:aws:s3:::${local.hbase_root_bucket}/${local.hbase_root_prefix}/*",
     ]
   }
 

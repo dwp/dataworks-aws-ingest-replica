@@ -8,7 +8,7 @@ resource "aws_s3_bucket_object" "configurations_yaml" {
   content = templatefile("files/emr-config/configurations.yaml.tpl",
     {
       //    hbase-site
-      hbase_rootdir                   = local.hbase_rootdir
+      hbase_rootdir                   = local.hbase_full_dir
       core_instance_count             = var.hbase_core_instance_count[local.environment]
       hbase_client_scanner_timeout_ms = var.hbase_client_scanner_timeout_ms[local.environment]
       hbase_assignment_usezk          = var.hbase_assignment_usezk[local.environment]

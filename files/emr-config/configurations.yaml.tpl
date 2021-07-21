@@ -3,7 +3,7 @@
 Configurations:
 - Classification: "hbase-site"
   Properties:
-    "hbase.rootdir": "s3://${hbase_rootdir}"
+    "hbase.rootdir": "${hbase_rootdir}"
     "hbase.master.wait.on.regionservers.mintostart": "${core_instance_count}"
     "hbase.client.scanner.timeout.period": "${hbase_client_scanner_timeout_ms}"
     "hbase.assignment.usezk": "${hbase_assignment_usezk}"
