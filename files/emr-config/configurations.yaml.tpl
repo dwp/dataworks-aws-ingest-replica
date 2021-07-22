@@ -1,5 +1,4 @@
 ---
-# todo: copy additional config from hbase-site terraform to here
 Configurations:
 - Classification: "hbase-site"
   Properties:
