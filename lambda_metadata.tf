@@ -11,8 +11,8 @@ locals {
 
 resource "aws_iam_role" "metadata_removal_lambda" {
   count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
-  name = "metadata-removal-lambda-role"
-  path = "/"
+  name  = "metadata-removal-lambda-role"
+  path  = "/"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -32,7 +32,7 @@ resource "aws_iam_role" "metadata_removal_lambda" {
 
 
 resource "aws_iam_policy_attachment" "metadata_removal_lambda" {
-  count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
+  count      = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   name       = "metadata-removal-lambda"
   policy_arn = aws_iam_policy.metadata_removal_lambda[count.index].arn
   roles      = [aws_iam_role.metadata_removal_lambda[count.index].name]
@@ -86,7 +86,7 @@ data "aws_iam_policy_document" "metadata_removal_lambda" {
 
 
 resource "aws_iam_policy" "metadata_removal_lambda" {
-  count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
+  count       = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   name        = "metadata-removal-lambda"
   description = "policy for lambda function that deletes replica metadata from hbase dir"
   policy      = data.aws_iam_policy_document.metadata_removal_lambda[count.index].json
@@ -95,7 +95,7 @@ resource "aws_iam_policy" "metadata_removal_lambda" {
 }
 
 data "archive_file" "metadata_removal_lambda" {
-  count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
+  count       = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   type        = "zip"
   source_dir  = "files/metadata_removal_lambda"
   output_path = "files/metadata_removal_lambda.zip"
@@ -116,43 +116,43 @@ resource "aws_lambda_function" "metadata_removal" {
 }
 
 resource "aws_cloudwatch_event_rule" "emr_state_change" {
-  count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
+  count       = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   name        = "emr-status-change"
   description = "captures status changes of emr clusters"
 
   event_pattern = jsonencode(
-  {
-    "source" : [
-      "aws.emr"
-    ],
-    "detail-type" : [
-      "EMR Cluster State Change"
-    ]
-  }
+    {
+      "source" : [
+        "aws.emr"
+      ],
+      "detail-type" : [
+        "EMR Cluster State Change"
+      ]
+    }
   )
 }
 
 resource "aws_sns_topic" "emr_state_change" {
   count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
-  name = "emr-state-change"
+  name  = "emr-state-change"
 }
 
 resource "aws_cloudwatch_event_target" "emr_state_change_lambda" {
   count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
-  rule = aws_cloudwatch_event_rule.emr_state_change[count.index].name
-  arn = aws_sns_topic.emr_state_change[count.index].arn
+  rule  = aws_cloudwatch_event_rule.emr_state_change[count.index].name
+  arn   = aws_sns_topic.emr_state_change[count.index].arn
 }
 
 
 resource "aws_sns_topic_subscription" "metadata_lambda_trigger" {
-  count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
+  count     = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   topic_arn = aws_sns_topic.emr_state_change[count.index].arn
   protocol  = "lambda"
   endpoint  = aws_lambda_function.metadata_removal[count.index].arn
 }
 
 resource "aws_lambda_permission" "metadata_lambda_trigger" {
-  count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
+  count         = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   statement_id  = "LaunchMetadataRemoval"
   action        = "lambda:InvokeFunction"
   function_name = aws_lambda_function.metadata_removal[count.index].function_name
@@ -161,7 +161,7 @@ resource "aws_lambda_permission" "metadata_lambda_trigger" {
 }
 
 resource "aws_sns_topic_policy" "emr_state_change" {
-  count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
+  count  = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   arn    = aws_sns_topic.emr_state_change[count.index].arn
   policy = data.aws_iam_policy_document.sns_topic_policy[count.index].json
 }
