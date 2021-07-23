@@ -14,16 +14,24 @@ from index import (
     S3Error,
     PathError,
 )
-from test_tools import *
+from test_tools import (
+    cluster_response_1,
+    cluster_response_2,
+    cluster_response_3,
+    lambda_sns_message,
+    s3_paginator_response,
+    keys_to_delete,
+)
 
 
 class TestPaths(unittest.TestCase):
     def test_re_match(self):
+        prefix = "folder1/folder2/data/hbase"
         compliant = [
-            f"{uuid.uuid4()}/folder1/folder2/data/hbase/meta_j-AAA111AAA1/",
-            f"{uuid.uuid4()}/folder1/folder2/data/hbase/meta_j-AAA111AAA1_$folder$",
-            f"{uuid.uuid4()}/folder1/folder2/data/hbase/meta_j-AAA111AAA1/.tabledesc/.tableinfo.001",
-            f"{uuid.uuid4()}/folder1/folder2/data/hbase/meta_j-AAA111AAA1/folder1/folder2",
+            f"{uuid.uuid4()}/{prefix}/meta_j-AAA111AAA1/",
+            f"{uuid.uuid4()}/{prefix}/meta_j-AAA111AAA1_$folder$",
+            f"{uuid.uuid4()}/{prefix}/meta_j-AAA111AAA1/.tabledesc/.tableinfo.001",
+            f"{uuid.uuid4()}/{prefix}/meta_j-AAA111AAA1/folder1/folder2",
         ]
 
         not_compliant = [
@@ -93,13 +101,6 @@ class TestS3(unittest.TestCase):
 
     @mock.patch("index.check_path", lambda x: True)
     def test_delete_objects_success(self):
-        keys_to_delete = [
-            "prefix1/file1",
-            "prefix1/file2",
-            "prefix2/file3",
-            "prefix2/file4",
-        ]
-
         stub_response = {
             "Deleted": [
                 {
@@ -118,13 +119,6 @@ class TestS3(unittest.TestCase):
 
     @mock.patch("index.check_path", lambda x: True)
     def test_delete_objects_fail(self):
-        keys_to_delete = [
-            "prefix1/file1",
-            "prefix1/file2",
-            "prefix2/file3",
-            "prefix2/file4",
-        ]
-
         stub_response = {
             "Errors": [
                 {
@@ -144,13 +138,7 @@ class TestS3(unittest.TestCase):
 
     @mock.patch("index.check_path", lambda x: False)
     def test_delete_objects_exception(self):
-        keys_to_delete = [
-            "prefix1/file1",
-            "prefix1/file2",
-            "prefix2/file3",
-            "prefix2/file4",
-        ]
-        with Stubber(self.client) as stubber:
+        with Stubber(self.client):
             self.assertRaises(
                 PathError, delete_objs, self.client, "bucket", keys_to_delete
             )
