@@ -97,7 +97,10 @@ resource "aws_iam_policy" "metadata_removal_lambda" {
 data "archive_file" "metadata_removal_lambda" {
   count       = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   type        = "zip"
-  source_dir  = "files/metadata_removal_lambda"
+  source {
+    content = "files/metadata_removal_lambda/index.py"
+    filename = "index.py"
+  }
   output_path = "files/metadata_removal_lambda.zip"
 }
 
@@ -117,8 +120,8 @@ resource "aws_lambda_function" "metadata_removal" {
 
 resource "aws_cloudwatch_event_rule" "emr_state_change" {
   count       = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
-  name        = "emr-status-change"
-  description = "captures status changes of emr clusters"
+  name        = "intraday-emr-terminated"
+  description = "captures termination events for intraday emr clusters: TERMINATED|TERMINATED_WITH_ERRORS"
 
   event_pattern = jsonencode(
     {
@@ -127,14 +130,25 @@ resource "aws_cloudwatch_event_rule" "emr_state_change" {
       ],
       "detail-type" : [
         "EMR Cluster State Change"
-      ]
+      ],
+
+      "detail": {
+        "state": [
+          "TERMINATED",
+          "TERMINATED_WITH_ERRORS",
+        ],
+        "name": [
+          "intraday-incremental",
+          "intraday-incremental-e2e",
+        ],
+      }
     }
   )
 }
 
 resource "aws_sns_topic" "emr_state_change" {
   count = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
-  name  = "emr-state-change"
+  name  = "intraday-emr-terminated"
 }
 
 resource "aws_cloudwatch_event_target" "emr_state_change_lambda" {
