@@ -99,6 +99,7 @@ meta:
               unset http_proxy
               unset https_proxy
               pytest -vs files/steps/tests.py
+              pytest -vs files/metadata_removal_lambda/tests.py
         inputs:
           - name: dataworks-aws-ingest-replica
         params:
