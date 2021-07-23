@@ -1,10 +1,15 @@
-import boto3
 import json
+import logging
 import os
 import re
+from typing import List
+
+import boto3
 from botocore.client import BaseClient
 from botocore.paginate import Paginator
-from typing import List
+
+_logger = logging.getLogger()
+_logger.setLevel(logging.INFO)
 
 
 class PathError(Exception):
@@ -31,12 +36,12 @@ class EMRCluster:
         self._uses_hbase = None
         self._applications = None
 
-    def uses_hbase(self):
+    def uses_hbase(self) -> bool:
         if self._uses_hbase is None:
             self._uses_hbase = "HBase" in self.get_applications()
         return self._uses_hbase
 
-    def get_applications(self):
+    def get_applications(self) -> List[str]:
         if self._applications is None:
             self._applications = [
                 application["Name"]
@@ -44,7 +49,7 @@ class EMRCluster:
             ]
         return self._applications
 
-    def get_hbase_configuration(self):
+    def get_hbase_configuration(self) -> dict:
         if self.uses_hbase():
             hbase_site_conf = self.get_classification("hbase-site")
             hbase_conf = self.get_classification("hbase")
@@ -54,7 +59,7 @@ class EMRCluster:
             hbase_readreplica = True if hbase_readreplica.lower() == "true" else False
             hbase_root_dir = hbase_site_conf["Properties"]["hbase.rootdir"]
             hbase_match = re.match(
-                r"s3://(?P<bucket>[A-Za-z0-9_.-]+)/(?P<prefix>.*)", hbase_root_dir
+                r"s3://(?P<bucket>[A-Za-z0-9_-]+)/(?P<prefix>.*)", hbase_root_dir
             )
             return {
                 "hbase_rootdir": hbase_root_dir,
@@ -62,55 +67,60 @@ class EMRCluster:
                 "hbase_prefix": hbase_match["prefix"],
                 "hbase_readreplica": hbase_readreplica,
             }
+        else:
+            return {}
 
-    def get_classification(self, classification: str):
+    def get_classification(self, classification: str) -> dict:
         return self._configurations.get(classification, {"Properties": {}})
 
-    def is_hbase_replica(self):
+    def is_hbase_replica(self) -> bool:
         hbase_config = self.get_hbase_configuration()
-        return (
-            True
-            if hbase_config.get("hbase_readreplica", "").lower() == "true"
-            else False
-        )
+        return hbase_config.get("hbase_readreplica")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return f"{self.cluster_id}\t{self.name}\t{self.state}"
 
     @staticmethod
-    def get_emr_client():
+    def get_emr_client() -> BaseClient:
         return boto3.client("emr")
 
 
-def get_emr_client():
+def get_emr_client() -> BaseClient:
     return boto3.client("emr")
 
 
-def get_s3_client():
+def get_s3_client() -> BaseClient:
     return boto3.client("s3")
 
 
-def get_s3_paginator(s3_client: BaseClient = None):
+def get_s3_paginator(s3_client: BaseClient = None) -> Paginator:
     if not s3_client:
         s3_client = get_s3_client()
     return s3_client.get_paginator("list_objects_v2")
 
 
-def get_cluster_ids(records: List[dict]):
+def get_cluster_ids(event: dict) -> List:
     return [
         json.loads(record["Sns"]["Message"])["detail"]["clusterId"]
-        for record in records
+        for record in event["Records"]
     ]
 
 
-def delete_objs(s3_client: BaseClient, s3_bucket: str, object_keys: List):
+def check_path(path: str) -> bool:
+    if "meta_" in path:
+        match = re.match(r"j-[A-Z0-9]+.*", path.split("meta_")[1])
+        return False if not match else True
+    else:
+        return False
+
+
+def delete_objs(s3_client: BaseClient, s3_bucket: str, object_keys: List) -> None:
     """Checks keys match replica pattern and deletes each object by key"""
-    for key in object_keys:
-        match = re.match(r"j-[A-Z0-9]+.*", key.split("meta_")[1])
-        if not match:
-            raise PathError(f"Path doesn't match replica meta pattern: {key}")
-    print("All keys match pattern")
-    print("Deleting Keys")
+    if not all([check_path(path) for path in object_keys]):
+        raise PathError(f"Path doesn't match replica meta pattern")
+
+    _logger.info("All keys match pattern")
+    _logger.info("Deleting Keys")
     response = s3_client.delete_objects(
         Bucket=s3_bucket, Delete={"Objects": [{"Key": key} for key in object_keys]}
     )
@@ -118,16 +128,18 @@ def delete_objs(s3_client: BaseClient, s3_bucket: str, object_keys: List):
     if "Errors" in response:
         raise S3Error(f"Errors during object deletion:\n{response['Errors']}")
     else:
-        print("Deletion response contains no errors")
+        _logger.info("Deletion response contains no errors")
 
     if "Deleted" in response:
-        print("Files deleted:")
-        [print("DELETED: " + item["Key"]) for item in response["Deleted"]]
+        _logger.info("Files deleted:")
+        [_logger.info("DELETED: " + item["Key"]) for item in response["Deleted"]]
     else:
-        print("Deletion response does not contain deleted files")
+        _logger.info("Deletion response does not contain deleted files")
 
 
-def get_s3_objects_list(paginator: Paginator, s3_bucket: str, s3_prefix: str):
+def get_s3_objects_list(
+    paginator: Paginator, s3_bucket: str, s3_prefix: str
+) -> List[str]:
     s3_response = paginator.paginate(Bucket=s3_bucket, Prefix=s3_prefix)
     object_keys = []
     for page in s3_response:
@@ -141,19 +153,19 @@ def handler(event, context):
     s3_client = get_s3_client()
     s3_paginator = get_s3_paginator(s3_client)
 
-    cluster_ids = get_cluster_ids(event["Records"])
+    cluster_ids = get_cluster_ids(event)
     clusters = [EMRCluster(cluster_id, emr_client) for cluster_id in cluster_ids]
-    [print(cluster) for cluster in clusters]
+    [_logger.info(cluster) for cluster in clusters]
     replicas_to_manage = [
         cluster
         for cluster in clusters
         if cluster.is_hbase_replica()
-           and "intraday" in cluster.name
-           and cluster.state in ["TERMINATED", "TERMINATED_WITH_ERRORS"]
+        and "intraday" in cluster.name
+        and cluster.state in ["TERMINATED", "TERMINATED_WITH_ERRORS"]
     ]
 
     if len(replicas_to_manage) == 0:
-        print("No replica cluster metadata to manage")
+        _logger.info("No replica cluster metadata to manage")
     else:
         for cluster in replicas_to_manage:
             config = cluster.get_hbase_configuration()
@@ -162,10 +174,10 @@ def handler(event, context):
             )
             s3_bucket = config["hbase_bucket"]
             object_keys = get_s3_objects_list(s3_paginator, s3_bucket, cluster_prefix)
-            print(f"CLUSTER ID: {cluster.cluster_id}")
-            print(f"CLUSTER meta prefix: {cluster_prefix}")
-            [print(f"    {key}") for key in object_keys]
+            _logger.info(f"CLUSTER ID: {cluster.cluster_id}")
+            _logger.info(f"CLUSTER meta prefix: {cluster_prefix}")
+            [_logger.info(f"    {key}") for key in object_keys]
             if len(object_keys) > 0:
                 delete_objs(s3_client, s3_bucket, object_keys)
             else:
-                print(f"No meta to delete for cluster id: {cluster.cluster_id}")
+                _logger.info(f"No meta to delete for cluster id: {cluster.cluster_id}")
