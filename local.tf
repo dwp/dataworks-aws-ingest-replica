@@ -51,6 +51,7 @@ locals {
 
   hbase_root_bucket = data.terraform_remote_state.internal_compute.outputs.aws_emr_cluster["root_bucket"]
   hbase_root_prefix = data.terraform_remote_state.internal_compute.outputs.aws_emr_cluster["root_directory"]
+  hbase_meta_prefix = "${local.hbase_root_prefix}/data/hbase/meta_"
   hbase_full_dir    = "s3://${local.hbase_root_bucket}/${local.hbase_root_prefix}"
 
   emr_applications = {

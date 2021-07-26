@@ -67,8 +67,7 @@ data "aws_iam_policy_document" "metadata_removal_lambda" {
       "s3:DeleteObject",
     ]
     resources = [
-      "arn:aws:s3:::${local.hbase_root_bucket}/${data.terraform_remote_state.ingest.outputs.ingest_emr_s3_prefixes["base_root_prefix"]}/*",
-      "arn:aws:s3:::${local.hbase_root_bucket}/${data.terraform_remote_state.ingest.outputs.ingest_emr_s3_prefixes["base_root_prefix"]}/",
+      "arn:aws:s3:::${local.hbase_root_bucket}/${local.hbase_meta_prefix}*",
     ]
   }
 
@@ -84,7 +83,6 @@ data "aws_iam_policy_document" "metadata_removal_lambda" {
 
 }
 
-
 resource "aws_iam_policy" "metadata_removal_lambda" {
   count       = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   name        = "metadata-removal-lambda"
@@ -97,10 +95,8 @@ resource "aws_iam_policy" "metadata_removal_lambda" {
 data "archive_file" "metadata_removal_lambda" {
   count       = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
   type        = "zip"
-  source {
-    content = "files/metadata_removal_lambda/index.py"
-    filename = "index.py"
-  }
+  source_content = file("files/metadata_removal_lambda/index.py")
+  source_content_filename = "index.py"
   output_path = "files/metadata_removal_lambda.zip"
 }
 
@@ -114,6 +110,13 @@ resource "aws_lambda_function" "metadata_removal" {
   handler          = "index.handler"
   runtime          = "python3.8"
   timeout          = 900
+
+  environment {
+    variables = {
+      hbase_prefix = local.hbase_meta_prefix
+      hbase_bucket = local.hbase_root_bucket
+    }
+  }
 
   tags = { Name = "metadata-removal-lambda" }
 }
