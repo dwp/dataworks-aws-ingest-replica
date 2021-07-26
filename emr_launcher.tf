@@ -162,7 +162,6 @@ resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_passrole" {
   policy_arn = aws_iam_policy.intraday_emr_launcher_passrole.arn
 }
 
-
 resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_policy_execution" {
   role       = aws_iam_role.intraday_emr_launcher_lambda.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole"
@@ -172,7 +171,6 @@ resource "aws_iam_role_policy_attachment" "intraday_emr_launcher_getsecrets" {
   role       = aws_iam_role.intraday_emr_launcher_lambda.name
   policy_arn = aws_iam_policy.intraday_emr_launcher_getsecrets.arn
 }
-
 
 resource "aws_sns_topic_subscription" "intraday_trigger" {
   topic_arn = aws_sns_topic.hbase_incremental_refresh_sns.arn

@@ -38,15 +38,15 @@ resource "aws_cloudwatch_event_target" "intraday_cron_lambda" {
   arn       = aws_lambda_function.intraday_cron_launcher.arn
 }
 
-data "archive_file" "lambda_zip" {
+data "archive_file" "intraday_cron_lambda" {
   type        = "zip"
-  source_dir  = "files/lambda"
-  output_path = "lambda.zip"
+  source_dir  = "files/intraday_cron_lambda"
+  output_path = "files/intraday_cron_lambda.zip"
 }
 
 resource "aws_lambda_function" "intraday_cron_launcher" {
-  filename         = "lambda.zip"
-  source_code_hash = data.archive_file.lambda_zip.output_base64sha256
+  filename         = data.archive_file.intraday_cron_lambda.output_path
+  source_code_hash = data.archive_file.intraday_cron_lambda.output_base64sha256
   function_name    = "intraday_cron_launcher"
   role             = aws_iam_role.intraday_cron_lambda_role.arn
   description      = "Lambda function for incremental refresh"

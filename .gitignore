@@ -10,3 +10,4 @@ aviator_pipeline.yml
 terraform.auto.tfvars
 
 files/emr-config/*.yaml
+files/*.zip
