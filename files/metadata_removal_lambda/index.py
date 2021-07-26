@@ -60,7 +60,7 @@ def delete_objs(s3_client: BaseClient, s3_bucket: str, object_keys: List) -> Non
 
 
 def get_s3_objects_list(
-        paginator: Paginator, s3_bucket: str, s3_prefix: str
+    paginator: Paginator, s3_bucket: str, s3_prefix: str
 ) -> List[str]:
     s3_response = paginator.paginate(Bucket=s3_bucket, Prefix=s3_prefix)
     object_keys = []
@@ -81,10 +81,7 @@ def handler(event, _):
 
     meta_keys = {
         id_: [
-            key
-            for key in get_s3_objects_list(
-                s3_paginator, hbase_bucket, meta_prefix
-            )
+            key for key in get_s3_objects_list(s3_paginator, hbase_bucket, meta_prefix)
         ]
         for id_, meta_prefix in meta_prefixes.items()
     }

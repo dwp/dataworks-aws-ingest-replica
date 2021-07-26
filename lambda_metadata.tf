@@ -93,11 +93,11 @@ resource "aws_iam_policy" "metadata_removal_lambda" {
 }
 
 data "archive_file" "metadata_removal_lambda" {
-  count       = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
-  type        = "zip"
-  source_content = file("files/metadata_removal_lambda/index.py")
+  count                   = local.enable_metadata_purge_lambda[local.environment] ? 1 : 0
+  type                    = "zip"
+  source_content          = file("files/metadata_removal_lambda/index.py")
   source_content_filename = "index.py"
-  output_path = "files/metadata_removal_lambda.zip"
+  output_path             = "files/metadata_removal_lambda.zip"
 }
 
 resource "aws_lambda_function" "metadata_removal" {
@@ -135,12 +135,12 @@ resource "aws_cloudwatch_event_rule" "emr_state_change" {
         "EMR Cluster State Change"
       ],
 
-      "detail": {
-        "state": [
+      "detail" : {
+        "state" : [
           "TERMINATED",
           "TERMINATED_WITH_ERRORS",
         ],
-        "name": [
+        "name" : [
           "intraday-incremental",
           "intraday-incremental-e2e",
         ],
