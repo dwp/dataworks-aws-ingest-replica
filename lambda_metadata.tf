@@ -1,7 +1,7 @@
 locals {
   enable_metadata_purge_lambda = {
     development = true
-    qa          = false
+    qa          = true
     integration = false
     preprod     = false
     production  = false
