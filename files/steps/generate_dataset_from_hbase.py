@@ -120,6 +120,7 @@ def get_parameters():
     p_manual.add_argument("--start_time", type=int, default=0)
     p_manual.add_argument("--end_time", type=int)
     p_manual.add_argument("--triggered_time", type=int)
+    p_manual.add_argument("--database_name", type=str, required=True)
     p_manual.add_argument(
         "--output_s3_bucket", type=str, default=INCREMENTAL_OUTPUT_BUCKET
     )
