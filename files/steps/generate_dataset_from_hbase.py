@@ -274,7 +274,7 @@ def replica_metadata_refresh():
     os.system('echo "refresh_meta" | hbase shell')
 
 
-def retry_requests(retries=10, backoff=1, methods=None):
+def retry_requests(retries=10, backoff=0.2, methods=None):
     if methods is None:
         methods = ["POST"]
     retry_strategy = Retry(
