@@ -620,6 +620,9 @@ def manual_handler(args):
         "record_count": record_count,
         "max_timestamps": max_timestamps,
     }
+    args.end_time = (
+        ms_epoch_now() if args.end_time is None else args.end_time
+    )
 
     # main
     collections = get_collections(args)
