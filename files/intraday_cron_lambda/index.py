@@ -6,8 +6,7 @@ from uuid import uuid4
 import base64
 import ast
 import boto3
-from boto3.dynamodb.conditions import Attr, Key
-from enum import Enum
+from boto3.dynamodb.conditions import Attr
 
 _logger = logging.getLogger()
 _logger.setLevel(logging.INFO)
@@ -58,6 +57,7 @@ def retrieve_secrets(secrets_client, secret_name):
 
 
 def update_db_items(table, collections, correlation_id: str, values: dict):
+    _logger.info(f"Updating db item: {values}")
     updates = {key: {"Value": value} for key, value in values.items()}
     for collection in collections:
         table.update_item(
@@ -80,7 +80,7 @@ def check_for_running_jobs(table, collections, correlation_id):
 
 
 def poll_previous_jobs(correlation_id, collections, table, timeout=300):
-    update_db_items(table, collections, correlation_id, {"JobStatus": WAITING})
+    _logger.info("Polling for previous running jobs")
     start_time = time.time()
 
     running_jobs = check_for_running_jobs(table, collections, correlation_id)
@@ -153,6 +153,10 @@ def launch_cluster(
 def handler(event, context):
     correlation_id = str(uuid4())
     triggered_time = round(time.time() * 1000)
+    _logger.info({
+        "correlation_id": correlation_id,
+        "triggered_time": triggered_time,
+    })
 
     sns_client = boto3.client("sns")
     dynamodb = boto3.resource("dynamodb")
@@ -160,6 +164,7 @@ def handler(event, context):
     secrets_client = boto3.session.Session().client(service_name="secretsmanager")
 
     collections = get_collections_list_from_aws(secrets_client, COLLECTIONS_SECRET_NAME)
+    _logger.info({"collections": collections})
     update_db_items(
         job_table,
         collections,
@@ -168,6 +173,7 @@ def handler(event, context):
     )
 
     try:
+        update_db_items(job_table, collections, correlation_id, {"JobStatus": WAITING})
         poll_previous_jobs(
             correlation_id=correlation_id, collections=collections, table=job_table
         )
