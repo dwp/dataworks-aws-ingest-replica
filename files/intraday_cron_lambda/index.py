@@ -134,8 +134,7 @@ def launch_cluster(
                     "--end_time",
                     str(new_end_time),
                     "--collections",
-                    " ".join(collections),
-                ]
+                ] + collections
             },
         }
     )

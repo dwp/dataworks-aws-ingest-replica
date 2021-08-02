@@ -211,12 +211,10 @@ def get_last_processed_dynamodb(collection, job_table):
         return int(results["Items"][0]["ProcessedDataEnd"])
     except IndexError:
         if results["Count"] == 0:
-            _logger.error(
-                f"No results in db for collection {collection}, populate db "
-                f"with ProcesssedDataEnd - use 0 timestamp to process whole "
-                f"collection"
+            _logger.warning(
+                f"No results in db for collection {collection}.  Using 0 timestamp"
             )
-        raise
+        return 0
     except KeyError:
         _logger.error(
             f"DB Item does not include attribute 'ProcessedDataEnd'.  Ensure"
@@ -494,7 +492,15 @@ def tag_s3_objects(s3_client, collection):
     _logger.info(f"{collection['hive_table']}: tagging complete, {i} objects")
 
 
-def main(spark, end_time, database_name, collections, s3_client, accumulators, update_dynamodb=False):
+def main(
+    spark,
+    end_time,
+    database_name,
+    collections,
+    s3_client,
+    accumulators,
+    update_dynamodb=False,
+):
     replica_metadata_refresh()
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -519,7 +525,7 @@ def main(spark, end_time, database_name, collections, s3_client, accumulators, u
                 create_hive_table,
                 itertools.repeat(spark),
                 itertools.repeat(database_name),
-                list(processed_collections)
+                list(processed_collections),
             )
         )
 
@@ -620,9 +626,7 @@ def manual_handler(args):
         "record_count": record_count,
         "max_timestamps": max_timestamps,
     }
-    args.end_time = (
-        ms_epoch_now() if args.end_time is None else args.end_time
-    )
+    args.end_time = ms_epoch_now() if args.end_time is None else args.end_time
 
     # main
     collections = get_collections(args)
