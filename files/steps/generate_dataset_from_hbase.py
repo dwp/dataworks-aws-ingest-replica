@@ -211,12 +211,10 @@ def get_last_processed_dynamodb(collection, job_table):
         return int(results["Items"][0]["ProcessedDataEnd"])
     except IndexError:
         if results["Count"] == 0:
-            _logger.error(
-                f"No results in db for collection {collection}, populate db "
-                f"with ProcesssedDataEnd - use 0 timestamp to process whole "
-                f"collection"
+            _logger.warning(
+                f"No results in db for collection {collection}.  Using 0 timestamp"
             )
-        raise
+        return 0
     except KeyError:
         _logger.error(
             f"DB Item does not include attribute 'ProcessedDataEnd'.  Ensure"
