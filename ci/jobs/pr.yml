@@ -6,6 +6,7 @@ jobs:
           trigger: true
           version: every
         - get: al2-emr-ami
+        - get: terraform-ecr
         - get: emr-launcher-release
           trigger: false
 
