@@ -121,8 +121,8 @@ data "aws_iam_policy_document" "intraday_emr_main" {
     ]
 
     resources = [
-      "${data.terraform_remote_state.common.outputs.published_bucket["arn"]}/intra-day/*",
-      "${data.terraform_remote_state.common.outputs.published_bucket["arn"]}/intra-day-tests/*",
+      "${data.terraform_remote_state.common.outputs.published_bucket["arn"]}/intraday/*",
+      "${data.terraform_remote_state.common.outputs.published_bucket["arn"]}/intraday-tests/*",
     ]
   }
 
