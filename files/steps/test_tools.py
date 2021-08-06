@@ -1,5 +1,6 @@
 import json
 from time import time
+from typing import Any
 
 dks_test_data = {
     "test_plaintext": "12b1a332-5b46-4ad7-bd98-6f8deea3ecb7",
@@ -28,7 +29,7 @@ dks_test_data = {
 
 
 class GetCollectionArgs:
-    collections: list = None
+    collections: Any = None
     output_s3_bucket: str = "example-bucket"
     output_s3_prefix: str = "folder1/folder2"
     end_time: int = round(time() / 1000)
