@@ -13,6 +13,9 @@ resources:
       branch: master
       uri: https://github.com/dwp/dataworks-aws-ingest-replica.git
       access_token: ((dataworks-secrets.concourse_github_pat))
+      ignore_path:
+        - ci/*
+        - aviator.yaml
     webhook_token: ((dataworks.concourse_github_webhook_token))
     check_every: 5m
 
@@ -57,6 +60,14 @@ resources:
       access_token: ((dataworks-secrets.concourse_github_pat))
     webhook_token: ((dataworks.concourse_github_webhook_token))
     check_every: 5m
+
+  - name: terraform-ecr
+    type: registry-image-resource
+    source:
+      repository: terraform
+      tag: ((dataworks.terraform_13_version))
+      aws_region: ((dataworks.aws_region))
+      aws_role_arn: arn:aws:iam::((dataworks.aws_management_acc)):role/ci
 
 
   - name: meta-development

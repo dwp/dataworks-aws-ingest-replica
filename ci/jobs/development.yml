@@ -3,6 +3,7 @@ jobs:
     max_in_flight: 1
     plan:
       - in_parallel:
+        - get: terraform-ecr
         - put: meta
           resource: meta-development
         - get: dataworks-behavioural-framework
