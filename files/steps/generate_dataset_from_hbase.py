@@ -165,6 +165,7 @@ def update_db_per_collection(
 ):
     """Update dynamodb with supplied collection-specific values  Bulk values
     will overwrite per-collection values."""
+    _logger.info("Updating Dynamodb per collection")
     if bulk_values:
         for collection, values in values_per_collection.items():
             values.update(bulk_values)
@@ -225,6 +226,7 @@ def get_last_processed_dynamodb(collection, job_table):
 
 def get_collections(args, job_table=None):
     """Parse collections and add required information"""
+    _logger.info("Parsing collections")
     timestamp_folder = datetime.datetime.fromtimestamp(
         args.triggered_time / 1000.0
     ).strftime("%Y%m%d-%H%M")
@@ -391,23 +393,27 @@ def list_to_csv_str(x):
 
 
 def process_collection(
-    collection_info, spark, end_time, accumulators, update_dynamodb=False
+    collection_info, spark, end_time, accumulators,
 ):
     """Extract collection from hbase, decrypt, put in S3."""
+    _logger.info(f"{collection_info['hbase_table']}: Processing collection")
     hbase_table_name = collection_info["hbase_table"]
     hive_table_name = collection_info["hive_table"]
     start_time = collection_info["start_time"]
 
     accumulators["max_timestamps"].add({hbase_table_name: None})
+    _logger.info(f"{hbase_table_name}: refreshing hfiles")
     hbase_commands = (
         f"refresh_hfiles '{hbase_table_name}' \n"
         + f"scan '{hbase_table_name}', {{TIMERANGE => [{start_time}, {end_time}]}}"
     )
+    _logger.info(f"{hbase_table_name}: extracting data")
     os.system(
         f'echo -e "{hbase_commands}" '
         f"| hbase shell  "
         f"| hdfs dfs -put -f - hdfs:///{hive_table_name}"
     )
+    _logger.info(f"{hbase_table_name}: processing data")
     rdd = (
         spark.sparkContext.textFile(f"hdfs:///{hive_table_name}")
         .filter(filter_rows)
@@ -422,6 +428,7 @@ def process_collection(
         ),
         compressionCodecClass="com.hadoop.compression.lzo.LzopCodec",
     )
+    _logger.info(f"{hbase_table_name}: Saved to S3")
     return collection_info
 
 
@@ -499,8 +506,9 @@ def main(
     collections,
     s3_client,
     accumulators,
-    update_dynamodb=False,
+    create_hive_tables_bool=True,
 ):
+    _logger.info("Refreshing metadata")
     replica_metadata_refresh()
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -511,23 +519,11 @@ def main(
                     itertools.repeat(spark),
                     itertools.repeat(end_time),
                     itertools.repeat(accumulators),
-                    itertools.repeat(update_dynamodb),
                 )
             )
     except Exception as e:
         _logger.error(e)
         raise e
-
-    # create Hive tables
-    with concurrent.futures.ThreadPoolExecutor() as executor:
-        _ = list(
-            executor.map(
-                create_hive_table,
-                itertools.repeat(spark),
-                itertools.repeat(database_name),
-                list(processed_collections),
-            )
-        )
 
     # tag files
     with concurrent.futures.ThreadPoolExecutor() as executor:
@@ -537,12 +533,26 @@ def main(
             )
         )
 
+    # create Hive tables
+    if create_hive_tables_bool:
+        with concurrent.futures.ThreadPoolExecutor() as executor:
+            _ = list(
+                executor.map(
+                    create_hive_table,
+                    itertools.repeat(spark),
+                    itertools.repeat(database_name),
+                    list(processed_collections),
+                )
+            )
+
 
 def get_job_status_table():
     return boto3.resource("dynamodb").Table(JOB_STATUS_TABLE)
 
 
 def scheduled_handler(args, cluster_id):
+    _logger.info(f"Scheduled handler")
+
     # boto3
     job_table = get_job_status_table()
     s3_client = get_s3_client()
@@ -560,11 +570,13 @@ def scheduled_handler(args, cluster_id):
 
     # main
     collections = get_collections(args, job_table)
+    _logger.info(f"Collections: {' '.join([collection['hbase_table'] for collection in collections])}")
 
     start_times = {
         collection["hbase_table"]: {"ProcessedDataStart": collection["start_time"]}
         for collection in collections
     }
+
     update_db_per_collection(
         table=job_table,
         correlation_id=args.correlation_id,
@@ -578,6 +590,7 @@ def scheduled_handler(args, cluster_id):
     )
     perf_start = time.perf_counter()
     try:
+        _logger.info("Executing main")
         main(
             spark=spark,
             end_time=args.end_time,
@@ -585,8 +598,9 @@ def scheduled_handler(args, cluster_id):
             collections=collections,
             s3_client=s3_client,
             accumulators=accumulators,
-            update_dynamodb=True,
         )
+        _logger.info("main executed successfully")
+
         update_db_with_success(
             table=job_table,
             correlation_id=args.correlation_id,
@@ -597,14 +611,14 @@ def scheduled_handler(args, cluster_id):
         total_time = round(perf_end - perf_start)
 
     except Exception as e:
-        _logger.error(f"Failed to process collections")
+        _logger.error(f"Failed to process collections", extra={"Exception": e})
         update_db_bulk_collections(
             table=job_table,
             correlation_id=args.correlation_id,
             collections=collections,
             values={"JobStatus": EMRStates["EMR_FAILED"]},
         )
-        raise e
+        raise
 
     _logger.info(
         f"time taken to process collections: {record_count.value} records"
@@ -613,6 +627,8 @@ def scheduled_handler(args, cluster_id):
 
 
 def manual_handler(args):
+    _logger.info(f"Manual handler")
+
     # boto3
     s3_client = get_s3_client()
 
@@ -630,8 +646,11 @@ def manual_handler(args):
 
     # main
     collections = get_collections(args)
+    _logger.info(f"Collections: {' '.join([collection['hbase_table'] for collection in collections])}")
+
     perf_start = time.perf_counter()
     try:
+        _logger.info("Executing main")
         main(
             spark=spark,
             end_time=args.end_time,
@@ -639,14 +658,13 @@ def manual_handler(args):
             collections=collections,
             s3_client=s3_client,
             accumulators=accumulators,
-            update_dynamodb=False,
         )
         perf_end = time.perf_counter()
         total_time = round(perf_end - perf_start)
 
     except Exception as e:
-        _logger.error(f"Failed to process collections")
-        raise e
+        _logger.error(f"Failed to process collections", extra={"Exception": e})
+        raise
 
     _logger.info(
         f"time taken to process collections: {record_count.value} records"
@@ -660,6 +678,7 @@ if __name__ == "__main__":
         log_path=LOG_PATH,
     )
     cluster_id = os.environ.get("EMR_CLUSTER_ID")
+    _logger.info(f"Job submitted on cluster {cluster_id}")
     args = get_parameters()
 
     args.triggered_time = (
