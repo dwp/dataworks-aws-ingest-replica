@@ -145,7 +145,7 @@ variable "hbase_core_instance_type_one" {
     development = "m5.xlarge"
     qa          = "m5.xlarge"
     integration = "m5.xlarge"
-    preprod     = "m5.xlarge"
+    preprod     = "m5.2xlarge"
     production  = "m5.2xlarge" # Due to eu-#west-2a AZ outtage, r5's are a no go right now.
   }
 }
@@ -157,7 +157,7 @@ variable "hbase_regionserver_handler_count" {
     development = 32
     qa          = 32
     integration = 32
-    preprod     = 32
+    preprod     = 64
     production  = 64 // 8x the vCPUs as a reasonable estimate. see hbase_core_instance_type -> for the m5.2xlarge as above.
   }
 }
@@ -170,7 +170,7 @@ variable "hbase_core_instance_count" {
     development = 2
     qa          = 2
     integration = 2
-    preprod     = 2
+    preprod     = 20
     production  = 175
   }
 }
