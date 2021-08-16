@@ -17,14 +17,14 @@ locals {
       "SAT" : "cron(0 19-22 ? * SAT *)"
     },
     "production" = {
-    "SUN-FRI" : "cron(30 10-14,19-22 ? * SUN-FRI *)",
+      "SUN-FRI" : "cron(30 10-14,19-22 ? * SUN-FRI *)",
       "SAT" : "cron(0 19-22 ? * SAT *)"
     },
   }
 }
 
 resource "aws_cloudwatch_event_rule" "intraday_schedule" {
-  for_each            =  { for k, v in local.intraday_schedule[local.environment]: k => v if k != "preprod"  }
+  for_each            = { for k, v in local.intraday_schedule[local.environment] : k => v if k != "preprod" }
   name                = "intraday-refresh-${each.key}"
   description         = "scheduler for incremental refresh, days: ${each.key}"
   schedule_expression = each.value
