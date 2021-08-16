@@ -199,65 +199,6 @@ variable "hbase_core_ebs_type" {
   }
 }
 
-variable "hbase_namenode_hdfs_threads" {
-  type        = map(number)
-  description = "The number of threads handling writes and reads to name nodes on the master, number of vCPUs on the master should be considered"
-  default = {
-    development = 10
-    qa          = 10
-    integration = 10
-    preprod     = 10
-    production  = 42
-  }
-}
-
-variable "hbase_datanode_hdfs_threads" {
-  type        = map(number)
-  description = "The number of threads handling writes and reads to data nodes on the cores, number of vCPUs on the cores should be considered"
-  default = {
-    development = 3
-    qa          = 3
-    integration = 3
-    preprod     = 3
-    production  = 12
-  }
-}
-
-variable "hbase_datanode_max_transfer_threads" {
-  type        = map(number)
-  description = "Upper bound on the number of files that the hadoop data nodes can serve at any one time"
-  default = {
-    development = 4096
-    qa          = 4096
-    integration = 4096
-    preprod     = 4096
-    production  = 8192
-  }
-}
-
-variable "hbase_client_socket_timeout" {
-  type        = map(number)
-  description = "Timeout in milliseconds for a connection to HDFS (default 60000)"
-  default = {
-    development = 60000
-    qa          = 60000
-    integration = 60000
-    preprod     = 60000
-    production  = 90000
-  }
-}
-
-variable "hbase_datanode_socket_write_timeout" {
-  type        = map(number)
-  description = "Timeout in milliseconds for a write to HDFS (default 480000)"
-  default = {
-    development = 480000
-    qa          = 480000
-    integration = 480000
-    preprod     = 480000
-    production  = 600000
-  }
-}
 
 variable "hbase_assignment_usezk" {
   type        = map(bool)
