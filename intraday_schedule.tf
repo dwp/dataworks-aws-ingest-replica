@@ -24,7 +24,7 @@ locals {
 }
 
 resource "aws_cloudwatch_event_rule" "intraday_schedule" {
-  for_each            = { for k, v in local.intraday_schedule[local.environment] : k => v if k != "preprod" }
+  for_each            = { for k, v in local.intraday_schedule[local.environment] : k => v if local.environment != "preprod" }
   name                = "intraday-refresh-${each.key}"
   description         = "scheduler for incremental refresh, days: ${each.key}"
   schedule_expression = each.value
@@ -32,7 +32,7 @@ resource "aws_cloudwatch_event_rule" "intraday_schedule" {
 }
 
 resource "aws_cloudwatch_event_target" "intraday_cron_lambda" {
-  for_each  = local.intraday_schedule[local.environment]
+  for_each  = { for k, v in local.intraday_schedule[local.environment] : k => v if local.environment != "preprod" }
   rule      = aws_cloudwatch_event_rule.intraday_schedule[each.key].name
   target_id = "intraday-refresh-emr-launcher-${each.key}"
   arn       = aws_lambda_function.intraday_cron_launcher.arn
