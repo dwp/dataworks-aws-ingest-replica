@@ -393,7 +393,10 @@ def list_to_csv_str(x):
 
 
 def process_collection(
-    collection_info, spark, end_time, accumulators,
+    collection_info,
+    spark,
+    end_time,
+    accumulators,
 ):
     """Extract collection from hbase, decrypt, put in S3."""
     _logger.info(f"{collection_info['hbase_table']}: Processing collection")
@@ -572,7 +575,9 @@ def scheduled_handler(args, cluster_id):
 
     # main
     collections = get_collections(args, job_table)
-    _logger.info(f"Collections: {' '.join([collection['hbase_table'] for collection in collections])}")
+    _logger.info(
+        f"Collections: {' '.join([collection['hbase_table'] for collection in collections])}"
+    )
 
     start_times = {
         collection["hbase_table"]: {"ProcessedDataStart": collection["start_time"]}
@@ -648,7 +653,9 @@ def manual_handler(args):
 
     # main
     collections = get_collections(args)
-    _logger.info(f"Collections: {' '.join([collection['hbase_table'] for collection in collections])}")
+    _logger.info(
+        f"Collections: {' '.join([collection['hbase_table'] for collection in collections])}"
+    )
 
     perf_start = time.perf_counter()
     try:
