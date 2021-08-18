@@ -268,12 +268,6 @@ def get_collections(args, job_table=None):
     return collections
 
 
-def replica_metadata_refresh():
-    """Refresh replica cluster metadata"""
-    os.system("sudo chmod -R a+rwx /var/log/hbase")
-    os.system('echo "refresh_meta" | hbase shell')
-
-
 def retry_requests(retries=10, backoff=0.2, methods=None):
     if methods is None:
         methods = ["POST"]
@@ -509,7 +503,6 @@ def main(
     create_hive_tables_bool=True,
 ):
     _logger.info("Refreshing metadata")
-    replica_metadata_refresh()
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             processed_collections = list(
