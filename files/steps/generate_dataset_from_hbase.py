@@ -105,7 +105,7 @@ def get_parameters():
     p_scheduled.add_argument("--correlation_id", type=str, required=True)
     p_scheduled.add_argument("--triggered_time", type=int, required=True)
     p_scheduled.add_argument("--collections", type=str, nargs="+", required=True)
-    p_scheduled.add_argument("--database_name", type=str, default="intra_day")
+    p_scheduled.add_argument("--database_name", type=str, default="intraday")
     p_scheduled.add_argument("--end_time", type=int, required=True)
     p_scheduled.add_argument(
         "--output_s3_bucket", type=str, default=INCREMENTAL_OUTPUT_BUCKET
@@ -268,12 +268,6 @@ def get_collections(args, job_table=None):
     return collections
 
 
-def replica_metadata_refresh():
-    """Refresh replica cluster metadata"""
-    os.system("sudo chmod -R a+rwx /var/log/hbase")
-    os.system('echo "refresh_meta" | hbase shell')
-
-
 def retry_requests(retries=10, backoff=0.2, methods=None):
     if methods is None:
         methods = ["POST"]
@@ -406,13 +400,12 @@ def process_collection(
 
     accumulators["max_timestamps"].add({hbase_table_name: None})
     _logger.info(f"{hbase_table_name}: refreshing hfiles")
-    hbase_commands = (
-        f"refresh_hfiles '{hbase_table_name}' \n"
-        + f"scan '{hbase_table_name}', {{TIMERANGE => [{start_time}, {end_time}]}}"
+    scan_command = (
+        f"scan '{hbase_table_name}', {{TIMERANGE => [{start_time}, {end_time}]}}"
     )
     _logger.info(f"{hbase_table_name}: extracting data")
     os.system(
-        f'echo -e "{hbase_commands}" '
+        f'echo -e "{scan_command}" '
         f"| hbase shell  "
         f"| hdfs dfs -put -f - hdfs:///{hive_table_name}"
     )
@@ -514,7 +507,6 @@ def main(
     create_hive_tables_bool=True,
 ):
     _logger.info("Refreshing metadata")
-    replica_metadata_refresh()
     try:
         with concurrent.futures.ThreadPoolExecutor() as executor:
             processed_collections = list(
