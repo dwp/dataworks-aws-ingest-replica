@@ -105,7 +105,7 @@ def get_parameters():
     p_scheduled.add_argument("--correlation_id", type=str, required=True)
     p_scheduled.add_argument("--triggered_time", type=int, required=True)
     p_scheduled.add_argument("--collections", type=str, nargs="+", required=True)
-    p_scheduled.add_argument("--database_name", type=str, default="intra_day")
+    p_scheduled.add_argument("--database_name", type=str, default="intraday")
     p_scheduled.add_argument("--end_time", type=int, required=True)
     p_scheduled.add_argument(
         "--output_s3_bucket", type=str, default=INCREMENTAL_OUTPUT_BUCKET
