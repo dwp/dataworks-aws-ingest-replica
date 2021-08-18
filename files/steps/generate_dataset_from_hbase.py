@@ -397,13 +397,12 @@ def process_collection(
 
     accumulators["max_timestamps"].add({hbase_table_name: None})
     _logger.info(f"{hbase_table_name}: refreshing hfiles")
-    hbase_commands = (
-        f"refresh_hfiles '{hbase_table_name}' \n"
-        + f"scan '{hbase_table_name}', {{TIMERANGE => [{start_time}, {end_time}]}}"
+    scan_command = (
+        f"scan '{hbase_table_name}', {{TIMERANGE => [{start_time}, {end_time}]}}"
     )
     _logger.info(f"{hbase_table_name}: extracting data")
     os.system(
-        f'echo -e "{hbase_commands}" '
+        f'echo -e "{scan_command}" '
         f"| hbase shell  "
         f"| hdfs dfs -put -f - hdfs:///{hive_table_name}"
     )
