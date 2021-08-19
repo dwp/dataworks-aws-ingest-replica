@@ -1,0 +1,31 @@
+jobs:
+  - name: production
+    max_in_flight: 1
+    plan:
+      - in_parallel:
+          - get: terraform-ecr
+          - put: meta
+            resource: meta-preprod
+          - get: dataworks-behavioural-framework
+            passed:
+              - preprod
+            trigger: false
+          - get: dataworks-aws-ingest-replica
+            passed:
+              - preprod
+            trigger: true
+          - get: al2-emr-ami
+            passed:
+              - preprod
+            trigger: false
+          - get: emr-launcher-release
+            passed:
+              - preprod
+            trigger: false
+      - .: (( inject meta.plan.terraform-bootstrap ))
+      - .: (( inject meta.plan.terraform-apply ))
+        params:
+          TF_WORKSPACE: production
+      - .: (( inject meta.plan.terraform-plan ))
+        params:
+          TF_WORKSPACE: production
