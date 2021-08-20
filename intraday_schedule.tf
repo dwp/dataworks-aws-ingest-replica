@@ -3,7 +3,7 @@ locals {
     "development" = false,
     "qa"          = true,
     "integration" = true,
-    "preprod"     = true,
+    "preprod"     = false,
     "production"  = true,
 
   }
