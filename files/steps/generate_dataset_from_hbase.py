@@ -410,24 +410,22 @@ def process_collection(
         f"| hdfs dfs -put -f - hdfs:///{hive_table_name}"
     )
     _logger.info(f"{hbase_table_name}: processing data")
-
-    # Filter RDD
-    rdd = spark.sparkContext.textFile(f"hdfs:///{hive_table_name}").filter(filter_rows)
-    # Check if RDD is empty before continuing
-    if not rdd.isEmpty():
-        rdd = rdd.map(lambda x: process_record(x, hbase_table_name, accumulators)).map(
-            list_to_csv_str
-        )
-        rdd.saveAsTextFile(
-            "s3://"
-            + os.path.join(
-                collection_info["output_bucket"],
-                collection_info["full_output_prefix"],
-            ),
-            compressionCodecClass="com.hadoop.compression.lzo.LzopCodec",
-        )
-        _logger.info(f"{hbase_table_name}: Saved to S3")
-        return collection_info
+    rdd = (
+        spark.sparkContext.textFile(f"hdfs:///{hive_table_name}")
+        .filter(filter_rows)
+        .map(lambda x: process_record(x, hbase_table_name, accumulators))
+        .map(list_to_csv_str)
+    )
+    rdd.saveAsTextFile(
+        "s3://"
+        + os.path.join(
+            collection_info["output_bucket"],
+            collection_info["full_output_prefix"],
+        ),
+        compressionCodecClass="com.hadoop.compression.lzo.LzopCodec",
+    )
+    _logger.info(f"{hbase_table_name}: Saved to S3")
+    return collection_info
 
 
 def create_hive_table(spark, database_name, collection):
