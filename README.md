@@ -1,22 +1,64 @@
 # dataworks-aws-ingest-replica
+The Intraday cluster reads records from HBase, and converts into csv stored on S3.  External Hive tables are created
+over the output for querying in the Analytical Environment.
 
-## Infra for ingest-hbase replica
+# Overview
 
-This repo contains Makefile and base terraform folders and jinja2 files to fit the standard pattern.
-This repo is a base to create new Terraform repos, renaming the template files and adding the githooks submodule, making the repo ready for use.
+![Overview](docs/overview.png)
 
-Running aviator will create the pipeline required on the AWS-Concourse instance, in order pass a mandatory CI ran status check.  this will likely require you to login to Concourse, if you haven't already.
+1. A cloudwatch cron rule is used to trigger a lambda function
+1. The lambda function checks dynamodb for job details and determines whether the Intraday cluster should be launched
+1. The Intraday EMR Cluster launches as a read-replica for ingest-hbase
+1. Data is extracted from hbase and processed in pyspark (decrypted, collated and output to S3)
+1. Hive tables are created over the data in S3.  Views to provide the latest of each record are also created
 
-After cloning this repo, please generate `terraform.tf` and `terraform.tfvars` files:  
-`make bootstrap`
+## Job Tracking
 
-In addition, you may want to do the following: 
+The dynamodb table `intraday-job-status` records details for each collection processed, including:
+- Correlation ID, job triggered time, job status, timestamp of last record processed, emr ready time
 
-1. Create non-default Terraform workspaces as and if required:  
-    `make terraform-workspace-new workspace=<workspace_name>` e.g.  
-    ```make terraform-workspace-new workspace=qa```
+If a scheduled cluster is already running when the job is triggered, the lambda will try waiting for 
+approx. 15 minutes before timing out.  If the running cluster later completes successfully, this will not prevent 
+subsequent launches.
 
-1. Configure Concourse CI pipeline:
-    1. Add/remove jobs in `./ci/jobs` as required 
-    1. Create CI pipeline:  
-`aviator`
+If a scheduled cluster fails, during launch or processing, subsequent clusters will not launch until the dynamodb
+`JobStatus` is updated (i.e. from `FAILED` -> `_FAILED`).  This is to provide time for troubleshooting and resolution
+of the error.
+
+## Metadata Removal Lambda
+HBase read-replica clusters are not able to write/modify the data stored in HBase, but they do create folders in the
+hbase root directory to manage a copy of the metadata.  A directory is created for each cluster launched, and left
+behind after termination.
+
+These directories cause "inconsistencies" in the main cluster, which identifies the files as data for which it has no
+metadata.  To avoid inconsistencies being reported in the ingest-hbase cluster, the replica metadata is purged by lambda
+at the termination of each replica cluster.
+
+## Logs
+Logs are collected in cloudwatch 
+
+## Concourse Pipelines
+The is a concourse pipeline for intraday named `dataworks-aws-ingest-replica`, defined in the `ci` folder.
+
+### Admin Jobs
+Admin jobs can be found in the utility group in concourse,
+[intraday-emr-admin](https://ci.dataworks.dwp.gov.uk/teams/utility/pipelines/intraday-emr-admin)
+
+#### admin-start-cluster
+This will start a cluster with no steps.  The cluster must be terminated manually once no longer required
+
+#### admin-stop-cluster
+This can be used to stop a cluster with the given ID.  Amend the cluster_id parameter in the code and aviator the
+change before running the job.
+
+[comment]: <> (todo: actually amend job)
+
+#### remove-metadata
+This can be used to remove HBase read-replica metadata if not already done so by the lambda.  Provide the `CLUSTER_ID`
+parameter, and aviator the change before running the job.
+
+#### trigger-cluster
+This will trigger a cluster as if triggered by the cloudwatch rule.  The lambda will check for other running clusters
+before launching, check for the timestamps of latest processed records, and process everything from that point onwards
+for the collections defined in the aws-secrets for Intraday.
+
