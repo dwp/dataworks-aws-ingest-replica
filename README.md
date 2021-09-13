@@ -12,6 +12,13 @@ over the output for querying in the Analytical Environment.
 1. Data is extracted from hbase and processed in pyspark (decrypted, collated and output to S3)
 1. Hive tables are created over the data in S3.  Views to provide the latest of each record are also created
 
+## Scheduling and HBase Maintenance
+The Intraday Schedule is designed to process data hourly during the working day, exluding the HBase maintenance windows.
+HBase maintenance is documented in the internal-compute repo, and started/stopped by
+[concourse jobs](https://ci.dataworks.dwp.gov.uk/teams/utility/pipelines/ingest-emr-scheduled-tasks)
+
+Intraday scheduling is achieved using cloudwatch cron rules to trigger the Intraday lambda.
+
 ## Job Tracking
 
 The dynamodb table `intraday-job-status` records details for each collection processed, including:
