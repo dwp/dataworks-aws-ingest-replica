@@ -2,6 +2,10 @@
 The Intraday cluster reads records from HBase, and converts into csv stored on S3.  External Hive tables are created
 over the output for querying in the Analytical Environment.
 
+Other links:
+- [Adding/removing collections to intraday](docs/collection_changes.md)
+- [Inconsistencies/Preprod Testing](docs/inconsistencies.md)
+
 # Overview
 
 ![Overview](docs/overview.png)
@@ -28,7 +32,7 @@ If a scheduled cluster is already running when the job is triggered, the lambda 
 approx. 15 minutes before timing out.  If the running cluster later completes successfully, this will not prevent 
 subsequent launches.
 
-If a scheduled cluster fails, during launch or processing, subsequent clusters will not launch until the dynamodb
+If a scheduled cluster fails during launch or processing, subsequent clusters will not launch until the dynamodb
 `JobStatus` is updated (i.e. from `FAILED` -> `_FAILED`).  This is to provide time for troubleshooting and resolution
 of the error.
 
@@ -42,7 +46,7 @@ metadata.  To avoid inconsistencies being reported in the ingest-hbase cluster, 
 at the termination of each replica cluster.
 
 ## Logs
-Logs are collected in cloudwatch 
+Logs are collected in cloudwatch under `/app/ingest-replica-incremental/`
 
 ## Concourse Pipelines
 The is a concourse pipeline for intraday named `dataworks-aws-ingest-replica`, defined in the `ci` folder.
@@ -58,8 +62,6 @@ This will start a cluster with no steps.  The cluster must be terminated manuall
 This can be used to stop a cluster with the given ID.  Amend the cluster_id parameter in the code and aviator the
 change before running the job.
 
-[comment]: <> (todo: actually amend job)
-
 #### remove-metadata
 This can be used to remove HBase read-replica metadata if not already done so by the lambda.  Provide the `CLUSTER_ID`
 parameter, and aviator the change before running the job.
@@ -68,4 +70,3 @@ parameter, and aviator the change before running the job.
 This will trigger a cluster as if triggered by the cloudwatch rule.  The lambda will check for other running clusters
 before launching, check for the timestamps of latest processed records, and process everything from that point onwards
 for the collections defined in the aws-secrets for Intraday.
-
