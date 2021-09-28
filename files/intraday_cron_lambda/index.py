@@ -13,7 +13,8 @@ _logger.setLevel(logging.INFO)
 
 # Lambda environment vars
 JOB_STATUS_TABLE = os.environ["job_status_table_name"]
-LAUNCH_SNS_TOPIC_ARN = os.environ["sns_topic_arn"]
+SLACK_ALERT_ARN = os.environ["alert_topic_arn"]
+LAUNCH_SNS_TOPIC_ARN = os.environ["launch_topic_arn"]
 EMR_CONFIG_BUCKET = os.environ["emr_config_bucket"]
 EMR_CONFIG_PREFIX = os.environ["emr_config_folder"]
 COLLECTIONS_SECRET_NAME = os.environ["collections_secret_name"]
@@ -186,10 +187,34 @@ def handler(event, context):
         )
     except PollingTimeoutError:
         # Dynamodb already updated with status
+        alert_message = json.dumps(
+            {
+                "severity": "High",
+                "notification_type": "Warning",
+                "title_text": "Intraday Cluster Launch Deferred - Previous cluster still running",
+            }
+        )
+        sns_client.publish(
+            TargetArn=SLACK_ALERT_ARN,
+            Message=alert_message,
+        )
         raise
     except Exception:
         # Update Dynamodb with failure status
         update_db_items(
             job_table, collections, correlation_id, {"JobStatus": LAMBDA_FAILED}
+        )
+
+        alert_message = json.dumps(
+            {
+                "severity": "Critical",
+                "notification_type": "Error",
+                "title_text": "intraday_cron_launcher Lambda Failed",
+                "log_with_here": "true",
+            }
+        )
+        sns_client.publish(
+            TargetArn=SLACK_ALERT_ARN,
+            Message=alert_message,
         )
         raise

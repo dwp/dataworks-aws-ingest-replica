@@ -67,7 +67,8 @@ resource "aws_lambda_function" "intraday_cron_launcher" {
       job_status_table_name   = aws_dynamodb_table.intraday_job_status.name
       emr_config_bucket       = data.terraform_remote_state.common.outputs.config_bucket["id"]
       emr_config_folder       = local.ingest_emr_configuration_files_s3_prefix
-      sns_topic_arn           = aws_sns_topic.hbase_incremental_refresh_sns.arn
+      launch_topic_arn        = aws_sns_topic.hbase_incremental_refresh_sns.arn
+      alert_topic_arn         = data.terraform_remote_state.security-tools.outputs.sns_topic_london_monitoring["arn"]
       collections_secret_name = local.collections_secret_name
     }
   }
