@@ -19,7 +19,6 @@ EMR_CONFIG_BUCKET = os.environ["emr_config_bucket"]
 EMR_CONFIG_PREFIX = os.environ["emr_config_folder"]
 COLLECTIONS_SECRET_NAME = os.environ["collections_secret_name"]
 
-
 # Job Statuses & values stored in DynamoDB
 TRIGGERED = "LAMBDA_TRIGGERED"  # this lambda was triggered
 WAITING = "WAITING"  # this lambda is waiting up to 10 minutes for another cluster
@@ -90,7 +89,8 @@ def poll_previous_jobs(correlation_id, collections, table, timeout=300):
             f"Waited {round(time.time() - start_time)}/{timeout}"
             f" seconds for previous collections to complete:"
         )
-        _logger.info("\n".join(
+        _logger.info(
+            "\n".join(
                 [
                     str({"topic": row["Collection"], "JobStatus": row["JobStatus"]})
                     for row in running_jobs
@@ -135,7 +135,8 @@ def launch_cluster(
                     "--end_time",
                     str(new_end_time),
                     "--collections",
-                ] + collections
+                ]
+                + collections
             },
         }
     )
@@ -153,10 +154,12 @@ def launch_cluster(
 def handler(event, context):
     correlation_id = str(uuid4())
     triggered_time = round(time.time() * 1000)
-    _logger.info({
-        "correlation_id": correlation_id,
-        "triggered_time": triggered_time,
-    })
+    _logger.info(
+        {
+            "correlation_id": correlation_id,
+            "triggered_time": triggered_time,
+        }
+    )
 
     sns_client = boto3.client("sns")
     dynamodb = boto3.resource("dynamodb")
