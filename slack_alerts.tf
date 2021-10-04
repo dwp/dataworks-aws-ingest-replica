@@ -32,16 +32,13 @@ resource "aws_cloudwatch_metric_alarm" "intraday_failed_with_errors" {
   threshold                 = "1"
   alarm_description         = "This metric monitors cluster termination with errors"
   insufficient_data_actions = []
-  alarm_actions             = [data.terraform_remote_state.security-tools.outputs.sns_topic_london_monitoring.arn]
+  alarm_actions             = [data.terraform_remote_state.security-tools.outputs.sns_topic_london_monitoring["arn"]]
   dimensions = {
     RuleName = aws_cloudwatch_event_rule.intraday_terminated_with_errors.name
   }
-  tags = merge(
-  local.common_tags,
-  {
+  tags = {
     Name              = "intraday_failed_with_errors",
     notification_type = "Error"
     severity          = "Critical"
-  },
-  )
+  }
 }

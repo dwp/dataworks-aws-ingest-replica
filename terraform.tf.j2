@@ -172,14 +172,6 @@ locals {
     {%- endfor %}
   }
 
-  common_tags = {
-    {%- for key, value in common_tags.items() %}
-      {{key}} = "{{value}}"
-    {%- endfor %}
-    Environment  = local.environment
-    Application  = local.name
-    Team         = "DataWorks"
-  }
 
   cidr_block = {
   {%- for environment, ranges in cidr_block.items() %}
