@@ -1,8 +1,8 @@
 locals {
   intraday_schedule_enabled = {
     "development" = false,
-    "qa"          = true,
-    "integration" = true,
+    "qa"          = false,
+    "integration" = false,
     "preprod"     = false,
     "production"  = false,
 
