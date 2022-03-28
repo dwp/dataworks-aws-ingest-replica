@@ -1,8 +1,20 @@
 # dataworks-aws-ingest-replica
-The Intraday cluster reads records from HBase, and converts into csv stored on S3.  External Hive tables are created
-over the output for querying in the Analytical Environment.
+The Intraday cluster is a read-replica of ingest-hbase.   
+Records are read from the replica cluster, decrypted in memory and stored in s3
+using DKS.  Encryption in s3 is handled by the EMR Security Configuration.
 
-Other links:
+Limitations:
+- During testing in preprod, inconsistencies occurred in the primary HBase. 
+  It's not yet clear whether these were caused by the intraday testing.  See [here](docs/inconsistencies)
+- AWS implementation of HBase read-replicas made changes to the `meta` table.  This results in incompatibility
+  with standard HBase APIs/libraries.  The records are currently extracted via hbase CLI.  There are no performance
+  issues at the expected volumes for intraday data, but if significant increases are expected then the solution
+  may need re-evalutating.
+- AWS implementation of HBase read-replicas create a folder for each new replica in the hbase root directory.
+  This can cause instability in the primary cluster.
+  See [here](docs/inconsistencies.md) for more information
+
+Other documentation:
 - [Adding/removing collections to intraday](docs/collection_changes.md)
 - [Inconsistencies/Preprod Testing](docs/inconsistencies.md)
 
