@@ -19,6 +19,9 @@ of the inconsistencies.  The metadata-removal-lambda is triggered on termination
 
 ### Testing in Pre-production
 #### Preparation
+ingest-hbase in the Preproduction environment had significant inconsistencies.  These were cleared before testing
+commenced.
+
 The following steps were taken to prepare the preprod environment for intraday testing:
 - Inconsistencies reduced from ~500 to 0 by running the `sudo -u hbase hbase hbck -repair`
   and `sudo -u hbase hbase hbck -fixEmptyMetaCells` commands alternately
@@ -29,11 +32,16 @@ The following steps were taken to prepare the preprod environment for intraday t
 - Intraday schedule enabled
 
 The following issues occurred during/after intraday deployment.  Causality is not yet established, but the environment
-had been stable for a long period before the inconsistency repairs and intraday deployment.
+had been stable for a long period before the inconsistency repairs and intraday deployment.  
+
+Clearing inconsistencies is complicated - it's possible that the issues were not fulling resolved before
+testing started.
 
 #### Failure to archive/delete files
-The HBase logs are flooded with Errors relating to ~6 collections where it is unable to archive/delete files.
-Insights on the hbase_logs logstream:
+The HBase logs are flooded with Errors relating to ~6 collections where it is unable to archive/delete files.  These
+seemed to be the same collections that were previously affected by the inconsistencies.
+
+Insights on the `hbase_logs` logstream:
 
 ```filter @message like /org.apache.hadoop.hbase.backup.FailedArchiveException/```
 

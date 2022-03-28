@@ -12,13 +12,13 @@ the `intraday-job-status` table.
       cluster may need to be scaled
 
 
-2. Add the collection name to the intraday secret
+2. Add the collection name to the intraday secret (repo: `dataworks-secrets`)
 
 If historical data is not required, add a row to the tracking table using the 
 `ProcessedDataEnd` property to set the start date.
 
 ### Removing a collection
-1. Remove the collection name from the intraday secret
+1. Remove the collection name from the intraday secret (repo: `dataworks-secrets`)
    
 1. Optionally remove the data from S3 and drop the external table from the 
    intraday database.  If doing so, also delete all rows for this collection in
