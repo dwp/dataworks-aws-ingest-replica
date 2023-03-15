@@ -24,7 +24,23 @@ locals {
     AutoShutdown = local.auto_shutdown_tag_value[local.environment]
   }
 
-  common_repo_tags = merge(module.dataworks_common.common_tags, local.overridden_tags)
+  # common_repo_tags = merge(module.dataworks_common.common_tags, local.overridden_tags)
+  common_additional_tags = {
+    DWX_Environment = local.environment
+    DWX_Application = local.emr_cluster_name
+  }
+
+  common_tags_exclude_keys = ["Owner", "Name", "CreatedBy", "Application"]
+
+  common_tags = merge(
+    module.dataworks_common.common_tags,
+    local.overridden_tags,
+    local.common_additional_tags
+  )
+  common_repo_tags = zipmap(
+    [for k, v in local.common_tags : k if !contains(local.common_tags_exclude_keys, k)],
+    [for k, v in local.common_tags : v if !contains(local.common_tags_exclude_keys, k)]
+  )
 
   management_account = {
     development = "management-dev"

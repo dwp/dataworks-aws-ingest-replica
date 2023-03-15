@@ -628,7 +628,7 @@ resource "aws_security_group" "intraday_emr_service" {
   tags = { Name = "intraday-emr-service" }
 }
 
-resource "aws_s3_bucket_object" "intraday_emr_logs_folder" {
+resource "aws_s3_object" "intraday_emr_logs_folder" {
   bucket = data.terraform_remote_state.security-tools.outputs.logstore_bucket["id"]
   acl    = "private"
   key    = "emr/aws-intraday/"
