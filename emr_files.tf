@@ -2,7 +2,7 @@ locals {
   pyspark_log_path = "/var/log/adg_incremental_step.log"
 }
 
-resource "aws_s3_bucket_object" "configurations_yaml" {
+resource "aws_s3_object" "configurations_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.ingest_emr_configuration_files_s3_prefix}/configurations.yaml"
   content = templatefile("files/emr-config/configurations.yaml.tpl",
@@ -30,7 +30,7 @@ resource "aws_s3_bucket_object" "configurations_yaml" {
   tags = { Name = "configurations.yaml" }
 }
 
-resource "aws_s3_bucket_object" "cluster_yaml" {
+resource "aws_s3_object" "cluster_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.ingest_emr_configuration_files_s3_prefix}/cluster.yaml"
   content = templatefile("files/emr-config/cluster.yaml.tpl",
@@ -51,7 +51,7 @@ resource "aws_s3_bucket_object" "cluster_yaml" {
   tags = { Name = "cluster.yaml" }
 }
 
-resource "aws_s3_bucket_object" "instances_yaml" {
+resource "aws_s3_object" "instances_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.ingest_emr_configuration_files_s3_prefix}/instances.yaml"
   content = templatefile("files/emr-config/instances.yaml.tpl",
@@ -79,7 +79,7 @@ resource "aws_s3_bucket_object" "instances_yaml" {
   tags = { Name = "instances.yaml" }
 }
 
-resource "aws_s3_bucket_object" "steps_yaml" {
+resource "aws_s3_object" "steps_yaml" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.ingest_emr_configuration_files_s3_prefix}/steps.yaml"
   content = templatefile("files/emr-config/steps.yaml.tpl",
@@ -94,7 +94,7 @@ resource "aws_s3_bucket_object" "steps_yaml" {
 
 }
 
-resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
+resource "aws_s3_object" "generate_dataset_from_hbase" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.ingest_emr_step_scripts_s3_prefix}/generate_dataset_from_hbase.py"
   content = templatefile("files/steps/generate_dataset_from_hbase.py",
@@ -110,7 +110,7 @@ resource "aws_s3_bucket_object" "generate_dataset_from_hbase" {
   tags = { Name = "emr-step-generate-dataset-from-hbase" }
 }
 
-resource "aws_s3_bucket_object" "generate_dataset_from_adg" {
+resource "aws_s3_object" "generate_dataset_from_adg" {
   bucket  = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key     = "${local.ingest_emr_step_scripts_s3_prefix}/generate_dataset_from_adg.py"
   content = file("files/steps/generate_dataset_from_adg.py")
@@ -119,7 +119,7 @@ resource "aws_s3_bucket_object" "generate_dataset_from_adg" {
 }
 
 
-resource "aws_s3_bucket_object" "download_scripts" {
+resource "aws_s3_object" "download_scripts" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/download_scripts.sh"
   content = templatefile("files/bootstrap/download_scripts.sh",
@@ -135,7 +135,7 @@ resource "aws_s3_bucket_object" "download_scripts" {
   tags = { Name = "download_scripts" }
 }
 
-resource "aws_s3_bucket_object" "logging_sh" {
+resource "aws_s3_object" "logging_sh" {
   bucket  = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key     = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/logging.sh"
   content = file("files/bootstrap/logging.sh")
@@ -143,7 +143,7 @@ resource "aws_s3_bucket_object" "logging_sh" {
   tags = { Name = "logging" }
 }
 
-resource "aws_s3_bucket_object" "cloudwatch_sh" {
+resource "aws_s3_object" "cloudwatch_sh" {
   bucket = data.terraform_remote_state.common.outputs.config_bucket["id"]
   key    = "${local.ingest_emr_bootstrap_scripts_s3_prefix}/cloudwatch.sh"
   content = templatefile("files/bootstrap/cloudwatch.sh",
