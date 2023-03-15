@@ -32,7 +32,7 @@ resource "aws_s3_object" "certificate_setup" {
       truststore_aliases            = join(",", local.intraday_truststore_aliases[local.environment])
       truststore_certs              = local.intraday_truststore_certs[local.environment]
       dks_endpoint                  = data.terraform_remote_state.crypto.outputs.dks_endpoint[local.environment]
-      s3_script_amazon_root_ca1_pem = aws_s3_bucket_object.amazon_root_ca1_pem.id
+      s3_script_amazon_root_ca1_pem = aws_s3_object.amazon_root_ca1_pem.id
       s3_scripts_bucket             = data.terraform_remote_state.common.outputs.config_bucket["id"]
       full_proxy                    = data.terraform_remote_state.internal_compute.outputs.internet_proxy["url"]
       full_no_proxy                 = join(",", data.terraform_remote_state.internal_compute.outputs.vpc["vpc"]["no_proxy_list"])

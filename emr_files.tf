@@ -38,7 +38,7 @@ resource "aws_s3_object" "cluster_yaml" {
       ami_id                 = var.emr_al2_ami_id
       emr_release            = var.emr_release[local.environment]
       s3_log_bucket          = data.terraform_remote_state.security-tools.outputs.logstore_bucket["id"]
-      s3_log_prefix          = aws_s3_bucket_object.intraday_emr_logs_folder.id
+      s3_log_prefix          = aws_s3_object.intraday_emr_logs_folder.id
       emr_cluster_name       = local.emr_cluster_name
       security_configuration = aws_emr_security_configuration.intraday_emr.id
 
@@ -85,7 +85,7 @@ resource "aws_s3_object" "steps_yaml" {
   content = templatefile("files/emr-config/steps.yaml.tpl",
     {
       s3_config_bucket        = data.terraform_remote_state.common.outputs.config_bucket["id"]
-      download_scripts_sh_key = aws_s3_bucket_object.download_scripts.key
+      download_scripts_sh_key = aws_s3_object.download_scripts.key
 
       pyspark_action_on_failure = "TERMINATE_CLUSTER"
   })
@@ -127,7 +127,7 @@ resource "aws_s3_object" "download_scripts" {
       EMR_LOG_LEVEL              = local.emr_log_level[local.environment]
       ENVIRONMENT_NAME           = local.environment
       S3_COMMON_LOGGING_SHELL    = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], data.terraform_remote_state.common.outputs.application_logging_common_file["s3_id"])
-      S3_LOGGING_SHELL           = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], aws_s3_bucket_object.logging_sh.key)
+      S3_LOGGING_SHELL           = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], aws_s3_object.logging_sh.key)
       bootstrap_scripts_location = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], local.ingest_emr_bootstrap_scripts_s3_prefix)
       step_scripts_location      = format("s3://%s/%s", data.terraform_remote_state.common.outputs.config_bucket["id"], local.ingest_emr_step_scripts_s3_prefix)
   })
