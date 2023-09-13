@@ -1,3 +1,4 @@
+# DON NOU USE - MIGRATED TO GITLAB
 # dataworks-aws-ingest-replica
 The Intraday cluster is a read-replica of ingest-hbase.   
 Records are read from the replica cluster, decrypted in memory and stored in s3
